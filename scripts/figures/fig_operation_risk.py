@@ -80,10 +80,13 @@ def main():
     ma = c[(c.ref == "cvs_authors") & (c.method == "MAP (point world)")]["surgeries_with_false_confirm"]
     S["map"] = (ma.mean(), ma.min(), ma.max())
     panel(axes[2], S, "c  Cholec80 (recalibrated) · CVS", [0.05, 0.10, 0.20])
+    axes[0].errorbar([], [], yerr=[], fmt="none", ecolor=ST.MUTED, elinewidth=0.8, capsize=1.8,
+                     label="whiskers: 2.5–97.5% across splits")
     h, l = axes[0].get_legend_handles_labels()
-    order = [l.index(x) for x in (STYLE["surgery"][0], STYLE["pooled"][0], STYLE["ltt"][0], STYLE["map"][0], "nominal level")]
-    fig.legend([h[i] for i in order], [l[i] for i in order], loc="upper center", ncol=5, bbox_to_anchor=(0.5, 1.07),
-               columnspacing=1.4)
+    order = [l.index(x) for x in (STYLE["surgery"][0], STYLE["pooled"][0], STYLE["ltt"][0], STYLE["map"][0], "nominal level",
+                                  "whiskers: 2.5–97.5% across splits")]
+    fig.legend([h[i] for i in order], [l[i] for i in order], loc="upper center", ncol=6, bbox_to_anchor=(0.5, 1.07),
+               columnspacing=1.0, handletextpad=0.4)
     axes[0].text(0.012, 0.95, "violates the level", color="#b4442a", fontsize=6.5, va="top")
     fig.tight_layout(w_pad=0.8)
     ST.save(fig, OUT / "fig_operation_risk")
