@@ -155,7 +155,7 @@ def main():
     ax.plot([tx0, tx1], [ty0 + (ty1 - ty0) * lam / sc] * 2, c=ST.OURS, lw=1.2, transform=ax.transAxes)
     ax.text(tx0 + 0.005, ty1 - 0.03, "score", fontsize=6.5, color=ST.MUTED, va="top")
     ax.text(tx1 - 0.004, ty0 + 0.02, "time →", fontsize=6.5, color=ST.MUTED, ha="right")
-    ax.text(tx0 + 0.005, ty0 + (ty1 - ty0) * lam / sc + 0.012, "λ", fontsize=7, color=ST.OURS, weight="bold")
+    ax.text(tx0 + 0.005, ty0 + (ty1 - ty0) * lam / sc + 0.012, "λ (streaming threshold)", fontsize=6.5, color=ST.OURS, weight="bold")
     for k, i in enumerate(idx):                           # tie each thumbnail to its time
         xt = tx0 + (tx1 - tx0) * t[i]; xi = 0.505 + k * 0.0655 + 0.0305
         ax.plot([xi, xt], [0.70, ty1], c="#c9c8c2", lw=0.5, transform=ax.transAxes, zorder=1)
@@ -168,7 +168,7 @@ def main():
         ax.text(ox + 0.0415, yy + 0.06, lab, ha="center", va="center", fontsize=6.6, color=tc, zorder=6,
                 weight="bold" if k == 0 else "normal")
     arrow(ax, tx1 + 0.002, 0.52, ox - 0.002, 0.58, c=ST.OURS); arrow(ax, tx1 + 0.002, 0.42, ox - 0.002, 0.41)
-    ax.text(0.95, 0.27, "time-out:\nconfirm / STOP / defer", ha="center", va="center", fontsize=6, color=ST.MUTED)
+    ax.text(0.95, 0.27, "time-out: own thresholds,\nconfirm / STOP / defer", ha="center", va="center", fontsize=6, color=ST.MUTED)
     ax.text(0.505, 0.235, "green: surgeons rate CVS achieved", fontsize=6, color=ST.MUTED, va="center")
 
     # --- bottom: the unit of the guarantee

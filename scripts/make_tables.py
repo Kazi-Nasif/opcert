@@ -22,13 +22,14 @@ COMPARE = [
     ("One frame / video (Dunn)", "One frame/video~\\cite{dunn2023distribution}", "frame"),
     ("Repeated subsampling (Dunn, a/2)", "Rep.\\ subsampling~\\cite{dunn2023distribution}", "frame"),
     ("SCRC", "SCRC-I~\\cite{xu2025selective} ($\\xi$=0.9)", "sel.\\ frame, w.h.p."),
-    ("R|CRC Bonferroni (N max)", "CRC at $\\alpha/N_{\\max}$", "op.\\ (Bonferroni)"),
+    ("R|CRC Bonferroni (N max)", "CRC at $\\alpha/N_{\\max}$", "heuristic"),
     ("R|CRC Bonferroni (N mean)", "CRC at $\\alpha/\\bar N$", "none"),
     (None, None, None),
     ("Surgery-level (ours)", "\\textbf{Surgery-level (ours)}", "op.\\ ($\\ge$1)"),
     ("Surgery-level, k = 1 (ours)", "\\textbf{$k$=1 (ours)}", "op.\\ ($>$1)"),
     ("Surgery-level + smoothing (ours)", "\\textbf{+ smoothing (ours)}", "op.\\ ($\\ge$1)"),
     ("R|op-LTT", "\\textbf{PAC, $\\delta$=0.1 (ours)}", "op., w.h.p."),
+    ("SEL|surgery-level, summary chosen (split)", "\\textbf{window selected on half (ours)}", "op.\\ ($\\ge$1)"),
 ]
 COLS = ("ops_false_ge1", "ops_false_gt1", "frame_fr", "sens", "fdr")
 
@@ -51,6 +52,16 @@ def compare():
                 if "ours" in lab:
                     v[0] = f"\\textbf{{{v[0]}}}"
                 cells += v
+            lines.append(f"{lab} & {ctrl} & " + " & ".join(cells) + " \\\\"); continue
+        if key.startswith("SEL|"):                     # experiments/review/summaries.csv (same splits):
+            import pandas as pd                        # window and persistence chosen on half of the
+            d = pd.read_csv(ROOT / "experiments" / "review" / "summaries.csv")   # calibration operations
+            d = d[(d.arch == "dinov2l_b8") & (d.method == key[4:])]
+            for a in (0.05, 0.1):
+                x = d[d.alpha == a][list(COLS)].mean()
+                if x["sens"] == 0:
+                    cells += ["\\multicolumn{5}{c}{certifies nothing}"]; continue
+                v = [pc(x[c]) for c in COLS]; v[0] = f"\\textbf{{{v[0]}}}"; cells += v
             lines.append(f"{lab} & {ctrl} & " + " & ".join(cells) + " \\\\"); continue
         if key == "SCRC":                              # experiments/review/selective.csv (same protocol)
             import pandas as pd
