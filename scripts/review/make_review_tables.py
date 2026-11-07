@@ -120,7 +120,7 @@ def shift():
 def anatomy():
     d = pd.read_csv(R / "anatomy_robustness.csv"); d["alpha"] = d.alpha.fillna(-1)
     key = ["variant", "level", "degrade_cal", "assign", "K"]
-    g = d.groupby(key + ["method", "alpha"])[["ops_err", "precision", "recall"]].mean().reset_index()
+    g = d.groupby(key + ["method", "alpha"])[["ops_err", "precision", "recall", "recall_e2e"]].mean().reset_index()
     order = [("base", 0, True, "argmax", True, "base (all regions, IoU 0.5, argmax per structure)"),
              ("K", 0, True, "argmax", False, "point world without one-region-per-structure"),
              ("assign", 0, True, "all", True, "overlay every region above threshold"),
@@ -148,7 +148,7 @@ def anatomy():
             s = sel[(sel.method == "Surgery-level (ours)") & (sel.alpha == al)].iloc[0]
             cells.append(pc(s.ops_err)); worst = max(worst, s.ops_err - al)
         s = sel[(sel.method == "Surgery-level (ours)") & (sel.alpha == 0.1)].iloc[0]
-        cells += [pc(s.precision), pc(s.recall)] if s.recall > 0 else ["\\multicolumn{2}{c}{abstains}"]
+        cells += [pc(s.precision), pc(s.recall_e2e)] if s.recall > 0 else ["\\multicolumn{2}{c}{abstains}"]
         lines.append(f"{lab} & " + " & ".join(cells) + " \\\\")
         NUM[f"anat|{v}|{l}|{c}|{a}|{K}"] = {"pw": pw.ops_err, "frame": fl.ops_err, "surg": s.ops_err,
                                             "prec": s.precision, "rec": s.recall}

@@ -67,7 +67,8 @@ def variant(frames, T, name, level, apply_cal, seed):
             c = (B[:, :2] + B[:, 2:]) / 2 + rng.normal(0, level, (len(B), 2)) * wh
             wh = wh * np.exp(rng.normal(0, level, (len(B), 2)))
             B = np.concatenate([c - wh / 2, c + wh / 2], 1)
-        g = {"vid": f["vid"], "B": B, "P": P, "y": A.region_truth(B, f["G"], f["GL"], thr), "thr": thr}
+        g = {"vid": f["vid"], "B": B, "P": P, "y": A.region_truth(B, f["G"], f["GL"], thr), "thr": thr,
+             "gt": sum(int((f["GL"] == t).any()) for t in TARGETS)}   # annotated duct/artery structures
         # degradations that may apply to test only
         Bd, Pd = B, P
         if name == "drop" and len(B):
@@ -79,7 +80,7 @@ def variant(frames, T, name, level, apply_cal, seed):
         out.append(g)
     def finalize(g, use_degraded):
         B, P, y = (g["Bd"], g["Pd"], g["yd"]) if use_degraded else (g["B"], g["P"], g["y"])
-        return {"vid": g["vid"], "Pt": A.temper(P, T) if len(P) else P, "y": y}
+        return {"vid": g["vid"], "Pt": A.temper(P, T) if len(P) else P, "y": y, "gt": g["gt"]}
     return [(finalize(g, apply_cal), finalize(g, True)) for g in out]
 
 
@@ -113,28 +114,29 @@ def prep(frames, assign, use_K):
         f["pscore"] = A.projected_score(f["pprob"], f["pcorrect"])
         if len(f["Pt"]):
             yy = A.map_world(f["Pt"], use_K)
-            f["map_ok"] = [f["y"][r] == t for t in TARGETS for r in range(len(yy)) if yy[r] == t]
+            # one overlay per structure: the first region the point world labels t (as in main Table 2)
+            f["map_ok"] = [f["y"][int(np.flatnonzero(yy == t)[0])] == t for t in TARGETS if (yy == t).any()]
         else:
             f["map_ok"] = []
     return frames
 
 
 def score(frames, lam):
-    by_v, n_over, n_ok, cert = {}, 0, 0, 0
+    by_v, n_over, n_ok, cert, gt = {}, 0, 0, 0, 0
     for f in frames:
         bad = False
         for t in TARGETS:
             for c, ok in f["c"][t]:
                 if c > lam:
                     n_over += 1; n_ok += ok; bad |= not ok
-        cert += f["certifiable"]
+        cert += f["certifiable"]; gt += f["gt"]
         by_v[f["vid"]] = by_v.get(f["vid"], False) or bad
     return {"ops_err": float(np.mean(list(by_v.values()))), "precision": n_ok / max(n_over, 1),
-            "recall": n_ok / max(cert, 1)}
+            "recall": n_ok / max(cert, 1), "recall_e2e": n_ok / max(gt, 1)}
 
 
 def score_projected(frames, q):
-    by_v, n_over, n_ok, cert = {}, 0, 0, 0
+    by_v, n_over, n_ok, cert, gt = {}, 0, 0, 0, 0
     for f in frames:
         ov = A.projected_certify(f["pcand"], f["pprob"], q)
         bad = False
@@ -142,19 +144,19 @@ def score_projected(frames, q):
             if r is None:
                 continue
             ok = bool(f["pcorrect"][t]); n_over += 1; n_ok += ok; bad |= not ok
-        cert += f["certifiable"]
+        cert += f["certifiable"]; gt += f["gt"]
         by_v[f["vid"]] = by_v.get(f["vid"], False) or bad
     return {"ops_err": float(np.mean(list(by_v.values()))), "precision": n_ok / max(n_over, 1),
-            "recall": n_ok / max(cert, 1)}
+            "recall": n_ok / max(cert, 1), "recall_e2e": n_ok / max(gt, 1)}
 
 
 def score_map(frames):
-    by_v, n_over, n_ok, cert = {}, 0, 0, 0
+    by_v, n_over, n_ok, cert, gt = {}, 0, 0, 0, 0
     for f in frames:
-        n_over += len(f["map_ok"]); n_ok += sum(f["map_ok"]); cert += f["certifiable"]
+        n_over += len(f["map_ok"]); n_ok += sum(f["map_ok"]); cert += f["certifiable"]; gt += f["gt"]
         by_v[f["vid"]] = by_v.get(f["vid"], False) or (not all(f["map_ok"]))
     return {"ops_err": float(np.mean(list(by_v.values()))), "precision": n_ok / max(n_over, 1),
-            "recall": n_ok / max(cert, 1)}
+            "recall": n_ok / max(cert, 1), "recall_e2e": n_ok / max(gt, 1)}
 
 
 VARIANTS = ([("base", 0, True, "argmax", True)]
@@ -209,7 +211,7 @@ def main():
             rows += r
             print(r[0]["seed"], r[0]["variant"], r[0]["level"], r[0]["degrade_cal"], flush=True)
     df = save(rows, "anatomy_robustness")
-    summary(df, ["variant", "level", "degrade_cal", "assign", "K", "method", "alpha"], ["ops_err", "precision", "recall"])
+    summary(df, ["variant", "level", "degrade_cal", "assign", "K", "method", "alpha"], ["ops_err", "precision", "recall", "recall_e2e"])
 
 
 if __name__ == "__main__":

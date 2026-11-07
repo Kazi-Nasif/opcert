@@ -105,9 +105,12 @@ def score(frames, ovs, clip: bool):
         wrong_f += bad
         by_video[f["vid"]] = by_video.get(f["vid"], False) or bad
     certifiable = sum(int(f["correct"][t] and (not clip or f["cvs_ok"])) for f in frames for t in A.CLIP_TARGETS)
+    # end-to-end: every annotated duct / artery (with CVS for clipping), detector misses included
+    n_gt = sum(int((f["gt_labels"] == t).any() and (not clip or f["cvs_ok"])) for f in frames for t in A.CLIP_TARGETS)
     return {"surgeries_with_error": float(np.mean(list(by_video.values()))),
             "frame_error": wrong_f / len(frames), "overlays": n_over,
-            "precision": n_correct / max(n_over, 1), "recall": n_correct / max(certifiable, 1)}
+            "precision": n_correct / max(n_over, 1), "recall": n_correct / max(certifiable, 1),
+            "recall_e2e": n_correct / max(n_gt, 1)}
 
 
 def main():
@@ -181,7 +184,7 @@ def main():
         surgeries_with_error=("surgeries_with_error", "mean"),
         surg_lo=("surgeries_with_error", lambda x: x.quantile(0.025)),
         surg_hi=("surgeries_with_error", lambda x: x.quantile(0.975)),
-        frame_error=("frame_error", "mean"), precision=("precision", "mean"), recall=("recall", "mean"),
+        frame_error=("frame_error", "mean"), precision=("precision", "mean"), recall=("recall", "mean"), recall_e2e=("recall_e2e", "mean"),
         overlays=("overlays", "mean")).round(4)
     pd.set_option("display.width", 220); pd.set_option("display.max_columns", 20)
     print(agg.to_string())

@@ -13,6 +13,10 @@ Python 3.12, PyTorch >= 2.4, torchvision, transformers, timm, scikit-learn, scip
 ortools, matplotlib (`pip install -r requirements.txt`).
 
 ## Pipeline (all results are produced by these scripts from stored outputs)
+
+`MANIFEST.md` maps every table and figure of the paper and supplement to its script and result file.
+`scripts/review3/audit_table.py` writes a per-operation audit table for the fixed official split.
+
 | Step | Command |
 |---|---|
 | CVS models (4 backbones x 3 seeds) | `python scripts/finetune.py --arch {dinov2l,resnet50,surgenetxl,endovit} --seed S` |
