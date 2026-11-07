@@ -14,6 +14,7 @@ independent replicates.
 """
 import json
 import math
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -39,7 +40,8 @@ def main():
     d = pd.read_csv(ROOT / "experiments" / "compare_all" / "compare_all.csv")
     d = d[d.run.str.startswith("dinov2l_b8")]
     out, rows = {}, []
-    fig, axes = plt.subplots(1, 3, figsize=(6.875, 1.9), sharey=False)
+    sys.path.insert(0, str(ROOT / "scripts" / "figures")); import style as ST; ST.setup()
+    fig, axes = plt.subplots(1, 3, figsize=(ST.DOUBLE, 1.9), sharey=False)
     for ax, a in zip(axes, (0.05, 0.10, 0.20)):
         j = math.ceil((V + 1) * (1 - a)); A_, B_ = V + 1 - j, j
         obs = d[(d.method == "Surgery-level (ours)") & (d.alpha == a)].ops_false_ge1.to_numpy()
@@ -53,15 +55,16 @@ def main():
         rows.append(res)
         ks = np.arange(0, 16)
         emp = np.bincount(np.clip(k, 0, 15), minlength=16) / len(k)
-        ax.bar(ks / N_EVAL, emp, width=0.8 / N_EVAL, color="#1f4e9c", alpha=0.6, label="observed (600 splits)")
-        ax.plot(ks / N_EVAL, pred.pmf(ks), "o-", c="#e07b1a", ms=2.5, lw=1, label="theory (beta-binomial)")
-        ax.axvline(a, c="k", ls=":", lw=0.8)
-        ax.set_title(f"α = {a:.2f}", fontsize=7.5); ax.set_xlim(-0.01, 0.42); ax.tick_params(labelsize=6.5)
-        ax.set_xlabel("operations with ≥1 false confirmation", fontsize=6.5)
-    axes[0].set_ylabel("share of splits", fontsize=6.5); axes[0].legend(fontsize=5.8, frameon=False)
+        ax.bar(ks / N_EVAL, emp, width=0.85 / N_EVAL, color="#9ec5f4", ec="white", lw=0.6, label="observed (600 splits)")
+        ax.plot(ks / N_EVAL, pred.pmf(ks), "-", c=ST.INK, lw=1.0, label="beta-binomial law")
+        ax.axvline(a, c=ST.MUTED, ls=(0, (3, 2)), lw=0.8)
+        ax.text(a, ax.get_ylim()[1] * 0.97, f" α = {a:.2f}", color=ST.MUTED, fontsize=6.5, va="top")
+        ax.set_title("abc"[[0.05, 0.10, 0.20].index(a)] + f"  nominal level {a:.2f}"); ax.set_xlim(-0.02, 0.42)
+        ax.set_xticks([0, .1, .2, .3, .4]); ax.set_xticklabels(["0", "10", "20", "30", "40"])
+        ax.set_xlabel("operations with ≥1 false confirmation (%)"); ax.grid(axis="x", visible=False)
+    axes[0].set_ylabel("share of splits"); axes[0].legend(loc="center right")
     fig.tight_layout(pad=0.3)
-    for ext in ("pdf", "png"):
-        fig.savefig(ROOT / "paper" / "figures" / f"fig_conditional.{ext}", dpi=300, bbox_inches="tight")
+    ST.save(fig, ROOT / "paper" / "figures" / "fig_conditional")
     out["rows"] = rows
     (ROOT / "experiments" / "review" / "calib_conditional.json").write_text(json.dumps(out, indent=1))
     print(pd.DataFrame(rows).round(4).to_string())

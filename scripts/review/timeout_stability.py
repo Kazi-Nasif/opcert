@@ -61,8 +61,10 @@ def decide(p, lam_c, mu):
 
 def job(args):
     seed, w, P, C, rep = args
-    rng = np.random.default_rng(rep); idx = rng.permutation(len(P)); h = len(P) // 2
-    pc, cc, pt, ct = P[idx[:h]], C[idx[:h]], P[idx[h:]], C[idx[h:]]
+    h = len(P) // 2                     # the same halvings as main Table 3 (common.halves)
+    ci = np.sort(np.random.default_rng(rep).choice(len(P), h, replace=False)); ti = np.setdiff1d(np.arange(len(P)), ci)
+    pc, cc, pt, ct = P[ci], C[ci], P[ti], C[ti]
+    rng = np.random.default_rng(10_000 + rep)          # bootstrap resampling only
     rows = []
     for alpha in ALPHAS:
         for gk in ("fine", "coarse"):

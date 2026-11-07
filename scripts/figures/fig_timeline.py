@@ -23,8 +23,10 @@ from evaluate import causal_logits, fit_temperature   # noqa: E402
 
 OUT = ROOT / "paper" / "figures"
 ALPHA, SMOOTH = 0.05, 10
-plt.rcParams.update({"font.family": "serif", "font.size": 7.5, "axes.spines.top": False,
-                     "axes.spines.right": False, "legend.fontsize": 6.8})
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import style as ST  # noqa: E402
+
+ST.setup()
 
 
 def main():
@@ -58,25 +60,24 @@ def main():
     _, v, t, p, kt, ky, kp = best
     t0 = t.min(); t, kt = (t - t0) / 60, (kt - t0) / 60
 
-    fig, ax = plt.subplots(figsize=(3.3, 1.75))
-    for a_, b_ in zip(kt[:-1], kt[1:]):
-        pass
+    fig, ax = plt.subplots(figsize=(ST.SINGLE, 1.95))
     on = np.flatnonzero(ky)
-    for i in on:                                              # shade keyframes where surgeons say CVS
-        ax.axvspan(kt[i] - 2.5 / 60, kt[i] + 2.5 / 60, color="#2e8b57", alpha=0.18, lw=0)
-    ax.plot(t, p, c="k", lw=0.9, label=r"$\hat P$(CVS), 10 s smoothing")
-    ax.axhline(lam_frame, c="#e07b1a", lw=1.0, ls="--", label=f"frame-level threshold (CRC), α={ALPHA:.2f}")
-    ax.axhline(min(lam_op, 1.0), c="#1f4e9c", lw=1.2, label=f"surgery-level threshold (ours), α={ALPHA:.2f}")
+    for j, i in enumerate(on):                                # keyframes the surgeons rate as CVS
+        ax.axvspan(kt[i] - 2.5 / 60, kt[i] + 2.5 / 60, color="#cfe9dc", lw=0, zorder=0,
+                   label="surgeons: CVS achieved" if j == 0 else None)
+    ax.plot(t, p, c=ST.INK, lw=0.9, zorder=2, label="model score (10 s smoothing)")
+    ax.axhline(lam_frame, c=ST.CRC, lw=1.2, ls=(0, (4, 2)), zorder=3, label=f"frame-level threshold")
+    ax.axhline(min(lam_op, 1.0), c=ST.OURS, lw=1.4, zorder=3, label=f"per-operation threshold (ours)")
     fx = (kp > lam_frame) & ~ky
-    ax.scatter(kt[fx], kp[fx], marker="x", c="#c0392b", s=14, lw=1.0, zorder=5, label="false CVS confirmation (frame-level)")
-    ax.axvline(kt.max(), c="#7a7a7a", lw=0.8, ls=":")
-    ax.text(kt.max(), 1.02, "first clip", ha="right", va="bottom", fontsize=6.5, color="#555")
-    ax.set_xlabel("time in dissection phase (min)"); ax.set_ylabel(r"$\hat P$(CVS achieved)")
-    ax.set_ylim(0, 1.08); ax.set_xlim(0, kt.max() + 0.2)
-    ax.legend(loc="upper left", frameon=False, handlelength=1.6, borderaxespad=0.1)
+    ax.scatter(kt[fx], kp[fx], marker="x", c=ST.CRC, s=16, lw=1.1, zorder=5, label="false CVS confirmation")
+    ax.axvline(kt.max(), c=ST.MUTED, lw=0.8, ls=":")
+    ax.text(kt.max() - 0.03, 0.98, "first clip", ha="right", va="top", fontsize=6.5, color=ST.MUTED)
+    ax.set_xlabel("time in dissection (min)"); ax.set_ylabel("score")
+    ax.set_ylim(0, 1.0); ax.set_xlim(0, kt.max() + 0.2); ax.grid(axis="x", visible=False)
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, columnspacing=1.0, handlelength=1.4,
+              fontsize=6.5)
     fig.tight_layout(pad=0.2)
-    for ext in ("pdf", "png"):
-        fig.savefig(OUT / f"fig_timeline.{ext}", dpi=300, bbox_inches="tight")
+    ST.save(fig, OUT / "fig_timeline")
     print("video", v, "frame threshold", round(float(lam_frame), 3), "op threshold", round(float(lam_op), 3),
           "false confirmations (frame-level)", int(fx.sum()))
 

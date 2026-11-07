@@ -51,7 +51,8 @@ def score(tst, lam_c, mu, rule, alpha, base):
     conf = p > lam_c; alarm = (p < mu) & ~conf
     nc, pc = max((~c).sum(), 1), max(c.sum(), 1)
     return {**base, "alpha": alpha, "rule": rule,
-            "confirm_given_noCVS": (conf & ~c).sum() / nc, "confirm_given_CVS": (conf & c).sum() / pc,
+            "confirm_given_noCVS": (conf & ~c).sum() / nc if (~c).any() else np.nan,
+            "confirm_given_CVS": (conf & c).sum() / pc if c.any() else np.nan,   # splits without CVS left out, as in timeout_final
             "alarm_given_CVS": (alarm & c).sum() / pc if c.any() else np.nan,
             "alarm_given_noCVS": (alarm & ~c).sum() / nc, "alarm_and_CVS": float((alarm & c).mean()),
             "defer": float((~conf & ~alarm).mean()), "stop_possible": float(mu > -math.inf),
@@ -75,7 +76,8 @@ def main():
             E = endoscapes_ops(seed, s, sel_vids); C = cholec80_ops(seed, s, T)
             for rep in range(200):
                 rng = np.random.default_rng(rep)
-                idx = rng.permutation(len(E)); cal = [E[i] for i in idx[:len(E) // 2]]; tst = [E[i] for i in idx[len(E) // 2:]]
+                ci = np.sort(np.random.default_rng(rep).choice(len(E), len(E) // 2, replace=False))   # = common.halves
+                cal = [E[i] for i in ci]; tst = [E[i] for i in np.setdiff1d(np.arange(len(E)), ci)]
                 base = {"seed": seed, "smooth_s": s, "rep": rep, "dataset": "Endoscapes"}
                 for a in ALPHAS:
                     lc, mj, mc = thresholds(cal, a)
@@ -84,7 +86,8 @@ def main():
                 rows.append(score(tst, lc, mc, "asymmetric (confirm .10, STOP .20)", 0.10, base))
                 rows.append(point_world(tst, base))
                 if rep < 100:
-                    idx = rng.permutation(len(C)); cal = [C[i] for i in idx[:37]]; tst = [C[i] for i in idx[37:]]
+                    ci = np.sort(np.random.default_rng(rep).choice(len(C), len(C) // 2, replace=False))
+                    cal = [C[i] for i in ci]; tst = [C[i] for i in np.setdiff1d(np.arange(len(C)), ci)]
                     base = {"seed": seed, "smooth_s": s, "rep": rep, "dataset": "Cholec80 (recal.)"}
                     for a in ALPHAS:
                         lc, mj, mc = thresholds(cal, a)

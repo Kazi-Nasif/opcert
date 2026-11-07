@@ -83,6 +83,7 @@ def timeout_tables():
                 L.append(f"{ds.replace(' (recal.)', '')} & {pol} & {'--' if a is None else a} & {r.n_ops:.0f} & {r.n_cvs:.1f} & "
                          f"{r.tp:.1f} & {r.fp:.1f} & {pct(r.conf_noCVS)} & {pct(r.conf_CVS)} & {pct(r.prec)} & {pct(r.prec_pooled)} & "
                          f"{pct(r.fdr)} & {pct(r.any_conf, 0)} & {pct(r.stop_CVS) if pol in ('ours', 'point world') else '--'} & "
+                         f"{pct(r.stop_noCVS) if pol in ('ours', 'point world') else '--'} & "
                          f"{pct(r.stop_prec) if pol in ('ours', 'point world') else '--'} & {pct(r.defer)} \\\\")
         L.append("\\midrule")
     write("supp/timeout_full", L[:-1])

@@ -47,7 +47,7 @@ def endoscapes_ops(seed, smooth, sel_vids):
     """[{'vid', 'p': (n,) smoothed P(CVS) on CVS keyframes in time order, 'cvs': (n,), 't': (n,) seconds}]"""
     run = ROOT / "experiments" / "finetune" / f"dinov2l_b8_s{seed}"
     va, te = keyframes("val"), keyframes("test")
-    sel = np.isin(va.vid, sel_vids)
+    sel = np.isin(va.vid, list(sel_vids))   # list: np.isin does not accept a set
     T = fit_temperature(causal_logits(run / "logits_val.npz", va, 1)[sel], va.soft[sel])
     ops = []
     for split, kf in (("val", va), ("test", te)):

@@ -318,31 +318,46 @@ def table(df):
 
 
 def figure(df):
-    import matplotlib
-    matplotlib.use("Agg")
+    sys.path.insert(0, str(ROOT / "scripts" / "figures"))
+    import style as ST
+    ST.setup()
     import matplotlib.pyplot as plt
+    full = S_full = None
+    pf = OUT / "results_full.csv"
+    if pf.exists():
+        full = pd.read_csv(pf); full = full[(full.w == WINDOWS[0]) & full.analysis.str.startswith("F1")]
     d = df[df.w == WINDOWS[0]]
-    pols = list(dict.fromkeys(d.policy))
-    cols = {"A": "#7f7f7f", "B": "#e07b39", "C": "#2b6cb0"}
-    fig, ax = plt.subplots(1, 2, figsize=(7.0, 2.4))
-    for j, al in enumerate(ALPHAS):
-        for i, p in enumerate(pols):
-            r = d[(d.policy == p) & np.isclose(d.alpha, al)].iloc[0]
-            x = j + (i - 1) * 0.22; c = cols[p[0]]
-            ax[0].errorbar(x, 100 * r.case_error, yerr=[[100 * (r.case_error - r.case_error_lo)], [100 * (r.case_error_hi - r.case_error)]],
-                           fmt="o", color=c, capsize=3, label=p if j == 0 else None)
-            ax[1].errorbar(x, 100 * r.sens, yerr=[[100 * (r.sens - r.sens_lo)], [100 * (r.sens_hi - r.sens)]],
-                           fmt="s", color=c, capsize=3)
-        ax[0].hlines(100 * al, j - 0.4, j + 0.4, colors="k", linestyles="dotted")
-    for k, t in enumerate(("cases with $\\geq$1 false CVS confirmation (%)", "sensitivity on CVS frames (%)")):
-        ax[k].set_xticks(range(len(ALPHAS))); ax[k].set_xticklabels([f"$\\alpha$={al:.2f}" for al in ALPHAS])
-        ax[k].set_ylabel(t, fontsize=7); ax[k].tick_params(labelsize=7); ax[k].set_xlim(-0.5, len(ALPHAS) - 0.5)
-    ax[0].legend(fontsize=6, loc="upper left", frameon=False)
-    ax[0].set_title("(a) case-level error, exact 95% CI; dotted: $\\alpha$", fontsize=7)
-    ax[1].set_title("(b) sensitivity, case-bootstrap 95% CI", fontsize=7)
+    cols = {"A": (ST.POINT, "D", "A  Endoscapes threshold"), "B": (ST.CRC, "s", "B  frame-level CRC, recalibrated"),
+            "C": (ST.OURS, "o", "C  per operation (ours), recalibrated")}
+    sets = [("100 → 100 (locked)", d, lambda x: x.policy.str[0])]
+    if full is not None:
+        sets.append(("700 → 300", full, lambda x: x.policy))
+    fig, ax = plt.subplots(1, 2, figsize=(ST.DOUBLE, 2.2))
+    for si, (sname, x, polkey) in enumerate(sets):
+        for j, al in enumerate(ALPHAS):
+            base = si * 2.6 + j * 1.15
+            ax[0].fill_between([base - 0.45, base + 0.45], [100 * al] * 2, [60] * 2, color=ST.VIOLATE, lw=0, zorder=0)
+            ax[0].plot([base - 0.45, base + 0.45], [100 * al] * 2, c=ST.INK, ls=(0, (2, 1.5)), lw=0.8)
+            for i, p in enumerate("ABC"):
+                r = x[(polkey(x) == p) & np.isclose(x.alpha, al)].iloc[0]
+                c, mk, lab = cols[p]; xx = base + (i - 1) * 0.28
+                ax[0].errorbar(xx, 100 * r.case_error, yerr=[[100 * (r.case_error - r.case_error_lo)], [100 * (r.case_error_hi - r.case_error)]],
+                               fmt=mk, c=c, mec="white", mew=0.5, label=lab if (si == 0 and j == 0) else None, zorder=3)
+                ax[1].errorbar(xx, 100 * r.sens, yerr=[[100 * (r.sens - r.sens_lo)], [100 * (r.sens_hi - r.sens)]],
+                               fmt=mk, c=c, mec="white", mew=0.5, zorder=3)
+    ticks = [si * 2.6 + j * 1.15 for si in range(len(sets)) for j in range(len(ALPHAS))]
+    labs = [f"α={al:.2f}".replace("0.", ".") for _ in sets for al in ALPHAS]
+    for k in range(2):
+        ax[k].set_xticks(ticks); ax[k].set_xticklabels(labs); ax[k].grid(axis="x", visible=False)
+        for si, (sname, _, _) in enumerate(sets):
+            ax[k].text(si * 2.6 + 0.575, -0.2, sname, transform=ax[k].get_xaxis_transform(), ha="center", fontsize=7,
+                       color=ST.MUTED)
+    ax[0].set_ylim(0, 55); ax[0].set_ylabel("cases with ≥1 false confirmation (%)")
+    ax[1].set_ylim(0, 100); ax[1].set_ylabel("sensitivity on CVS frames (%)")
+    ax[0].set_title("a  case-level error, exact 95% CI"); ax[1].set_title("b  sensitivity, case-bootstrap 95% CI")
+    fig.legend(loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.08))
     fig.tight_layout()
-    for ext in ("pdf", "png"):
-        fig.savefig(ROOT / "paper" / "figures" / f"fig_sages.{ext}", dpi=200)
+    ST.save(fig, ROOT / "paper" / "figures" / "fig_sages")
 
 
 def main():

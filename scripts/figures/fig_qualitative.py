@@ -37,6 +37,12 @@ from surgery_level import order_stat_threshold, prepare  # noqa: E402
 
 OUT = ROOT / "paper" / "figures"
 NAMES = {A.DUCT: "duct", A.ARTERY: "artery"}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import style as ST  # noqa: E402
+
+ST.setup()
+plt.rcParams["axes.grid"] = False
+GOOD, BAD, NEUTRAL, DEFER = "#138a60", "#d03b3b", "#52514e", "#6f6e69"
 COL = {A.DUCT: "#ffd21f", A.ARTERY: "#ff4d4d"}
 ALPHA = 0.10
 CROP = (0.13, 0.87)                                  # horizontal crop of the black endoscope border
@@ -126,7 +132,7 @@ def main():
     print("chosen:", [(t, f["vid"], f["frame"]) for t, f, _ in chosen])
 
     rows = [("Reference\n(surgeons)", None), ("Point world", "pw"),
-            ("Frame-level\nCRC", "frame"), ("Surgery-level\n(ours)", "surg")]
+            ("Frame-level\nCRC", "frame"), ("Ours\n(per operation)", "surg")]
     n = len(chosen)
     fig, axes = plt.subplots(len(rows), n, figsize=(6.875, 0.66 * len(rows) * 6 / n + 0.2),
                              gridspec_kw=dict(wspace=0.03, hspace=0.04))
@@ -142,9 +148,9 @@ def main():
             for s in ax.spines.values():
                 s.set_visible(False)
             if j == 0:
-                ax.set_ylabel(rname, fontsize=5.6, rotation=90, labelpad=2)
+                ax.set_ylabel(rname, fontsize=6.5, rotation=90, labelpad=2, color=ST.OURS if key == "surg" else ST.INK, weight="bold" if key == "surg" else "normal")
             if i == 0:
-                ax.set_title(f"({'abcdefg'[j]}) operation {f['vid']}", fontsize=6.2, pad=2)
+                ax.set_title(f"{'abcdefg'[j]}  operation {f['vid']}", fontsize=6.8, pad=2, loc="left")
             fs = 5.0
             hb = fs * 1.9 * img.size[0] / 80.0             # keep labels clear of the CVS banner (top left)
             placed = [(0.0, hb), (img.size[0] * 0.3, hb), (img.size[0] * 0.55, hb)]   # CVS banner is always shown
@@ -156,7 +162,7 @@ def main():
                         put_label(ax, placed, b, x0, NAMES[l], COL[l], fs, img.size[0], img.size[1])
                 ax.text(0.02, 0.97, "CVS achieved" if f["cvs_ok"] else "CVS not achieved", transform=ax.transAxes,
                         va="top", fontsize=fs, color="w",
-                        bbox=dict(fc="#2e7d32" if f["cvs_ok"] else "#555555", ec="none", pad=0.6))
+                        bbox=dict(fc=GOOD if f["cvs_ok"] else NEUTRAL, ec="none", pad=0.6))
                 continue
             lab, cvs = o[key]
             shown = False
@@ -166,21 +172,21 @@ def main():
                 ok = f["y"][r] == t; b = B[r]
                 ax.add_patch(patches.Rectangle((b[0] - x0, b[1]), b[2] - b[0], b[3] - b[1], fill=False, lw=0.9,
                                                ec=COL[t], ls="-" if ok else (0, (2, 1.2))))
-                put_label(ax, placed, b, x0, f"{NAMES[t]} {f['Pt'][r, t]:.2f}" + ("" if ok else " ✗"), COL[t],
+                put_label(ax, placed, b, x0, f"{NAMES[t]} {f['Pt'][r, t]:.2f}" + ("" if ok else " ×"), COL[t],
                           fs, img.size[0], img.size[1])
                 shown = True
             ok = f["cvs_ok"]
             if cvs:                                   # every system states its CVS decision
-                txt, fc = ("CVS confirmed", "#2e7d32") if ok else ("CVS confirmed ✗", "#c62828")
+                txt, fc = ("CVS confirmed", GOOD) if ok else ("CVS confirmed ×", BAD)
             elif key == "pw":                         # the point world always answers
-                txt, fc = ("CVS not achieved", "#555555") if not ok else ("CVS not achieved ✗", "#e07b1a")
+                txt, fc = ("CVS not achieved", NEUTRAL) if not ok else ("CVS not achieved ×", BAD)
             else:                                     # a certifier that cannot confirm defers
-                txt, fc = "CVS: defer to surgeon", "#1f4e9c"
+                txt, fc = "CVS: defer to surgeon", DEFER
             ax.text(0.02, 0.97, txt, transform=ax.transAxes, va="top", fontsize=fs, color="w",
                     bbox=dict(fc=fc, ec="none", pad=0.6))
             if not shown:
                 ax.text(0.5, 0.05, "no label certified" if key != "pw" else "no label", transform=ax.transAxes,
-                        ha="center", fontsize=fs, color="w", bbox=dict(fc="#1f4e9c" if key != "pw" else "#555555",
+                        ha="center", fontsize=fs, color="w", bbox=dict(fc=DEFER,
                                                                        ec="none", pad=0.6))
     for ext in ("pdf", "png"):
         fig.savefig(OUT / f"fig_qualitative.{ext}", dpi=300, bbox_inches="tight", pad_inches=0.02)
