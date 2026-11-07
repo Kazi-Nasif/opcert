@@ -48,6 +48,7 @@ def panel(ax, S, title, alphas):
         ax.errorbar(x, m.values, yerr=[m.values - lo.values, hi.values - m.values], c=c, marker=mk,
                     mec="white", mew=0.6, elinewidth=0.8, label=lab, zorder=3)
     ax.axhline(S["map"][0], ls=(0, (4, 2)), c=STYLE["map"][1], lw=1.0, label=STYLE["map"][0], zorder=2)
+    ax.text(0.205, 0.245, "y = α", fontsize=6.3, color=ST.INK, ha="right", va="bottom", rotation=0)
     ax.set_title(title); ax.set_xlabel("nominal level α"); ax.set_xticks(alphas)
     ax.set_xticklabels([f"{a:.2f}".lstrip("0") for a in alphas])
     ax.set_ylim(0, 1.02); ax.set_xlim(0.0, 0.23)

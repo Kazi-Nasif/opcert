@@ -38,9 +38,9 @@ def main():
             nc = {"confirm": x.confirm_given_noCVS.mean(), "STOP": x.alarm_given_noCVS.mean()}
             nc["defer"] = max(0.0, 1 - nc["confirm"] - nc["STOP"])
             groups.append((ds.replace(" (recal.)", ""), label, wc, nc))
-    fig, axes = plt.subplots(1, 2, figsize=(ST.SINGLE, 1.5), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(ST.SINGLE, 1.85), sharey=True)
     names = [f"{g[1]}, {g[0]}" for g in groups]
-    ys = np.array([3.3, 2.3, 1.0, 0.0])
+    ys = np.array([3.0, 2.1, 0.9, 0.0])
     for ax, key, title in ((axes[0], 2, "CVS achieved at the clip"), (axes[1], 3, "CVS NOT achieved")):
         left = np.zeros(len(groups))
         for state in ("confirm", "STOP", "defer"):
@@ -51,7 +51,10 @@ def main():
                     ax.text(left[i] + v / 2, ys[i], f"{100 * v:.0f}", ha="center", va="center", fontsize=6,
                             color="white" if state != "defer" else "k")
             left += vals
-        ax.set_title(title, fontsize=7.5); ax.set_xlim(0, 1); ax.set_xticks([0, 0.5, 1]); ax.grid(False)
+        note = "red = false STOP\nbound α_s = 0.20" if key == 2 else "green = false CONFIRM\nbound α_c = 0.10"
+        ax.set_title(f"{title}\n{note}", fontsize=6.3); ax.set_xlim(0, 1); ax.set_xticks([0, 0.5, 1]); ax.grid(False)
+        if key == 3:                                           # CVS not achieved: CONFIRM is the false decision (bound alpha_c)
+            ax.axvline(0.10, c=ST.INK, ls=(0, (2, 1.5)), lw=0.7, zorder=4)
         ax.set_xticklabels(["0", "50", "100%"], fontsize=6.5)
     axes[0].set_yticks(ys); axes[0].set_yticklabels(names, fontsize=6.5)
     axes[0].legend(loc="upper center", bbox_to_anchor=(0.6, -0.25), ncol=3)

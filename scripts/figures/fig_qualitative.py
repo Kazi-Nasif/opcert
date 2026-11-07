@@ -131,70 +131,72 @@ def main():
             break
     print("chosen:", [(t, f["vid"], f["frame"]) for t, f, _ in chosen])
 
-    rows = [("Reference\n(surgeons)", None), ("Point world", "pw"),
-            ("Frame-level\nCRC", "frame"), ("Ours\n(per operation)", "surg")]
-    n = len(chosen)
-    fig, axes = plt.subplots(len(rows), n, figsize=(6.875, 0.66 * len(rows) * 6 / n + 0.2),
-                             gridspec_kw=dict(wspace=0.03, hspace=0.04))
-    for j, (tag, f, o) in enumerate(chosen):
-        fname = f"{f['vid']}_{f['frame']}.jpg"
-        img = Image.open(ROOT / "data" / "endoscapes" / "test" / fname).convert("RGB")
-        W, H = img.size; x0, x1 = int(CROP[0] * W), int(CROP[1] * W)
-        img = img.crop((x0, 0, x1, H))
-        d = R[fname]; B = np.array(d["boxes"]).reshape(-1, 4)
-        G = np.array(d["gt_boxes"]).reshape(-1, 4); GL = np.array(d["gt_labels"], int)
-        for i, (rname, key) in enumerate(rows):
-            ax = axes[i, j]; ax.imshow(img); ax.set_xticks([]); ax.set_yticks([])
-            for s in ax.spines.values():
-                s.set_visible(False)
-            if j == 0:
-                ax.set_ylabel(rname, fontsize=6.5, rotation=90, labelpad=2, color=ST.OURS if key == "surg" else ST.INK, weight="bold" if key == "surg" else "normal")
-            if i == 0:
-                ax.set_title(f"{'abcdefg'[j]}  operation {f['vid']}", fontsize=6.8, pad=2, loc="left")
-            fs = 5.0
-            hb = fs * 1.9 * img.size[0] / 80.0             # keep labels clear of the CVS banner (top left)
-            placed = [(0.0, hb), (img.size[0] * 0.3, hb), (img.size[0] * 0.55, hb)]   # CVS banner is always shown
-            if key is None:
-                for b, l in zip(G, GL):
-                    if l in NAMES:
-                        ax.add_patch(patches.Rectangle((b[0] - x0, b[1]), b[2] - b[0], b[3] - b[1], fill=False,
-                                                       lw=0.9, ec=COL[l]))
-                        put_label(ax, placed, b, x0, NAMES[l], COL[l], fs, img.size[0], img.size[1])
-                ax.text(0.02, 0.97, "CVS achieved" if f["cvs_ok"] else "CVS not achieved", transform=ax.transAxes,
-                        va="top", fontsize=fs, color="w",
-                        bbox=dict(fc=GOOD if f["cvs_ok"] else NEUTRAL, ec="none", pad=0.6))
-                continue
-            lab, cvs = o[key]
-            shown = False
-            for t, r in lab.items():
-                if r is None:
+    rows = [("Reference\n(surgeons)", None), ("Point world", "pw"), ("Frame-level\nCRC", "frame"), ("Ours\n(per operation)", "surg")]
+    # two blocks of three cases: larger frames, the same crop in every row, outcome labels outside the image
+    for blk, block in enumerate((chosen[:3], chosen[3:6])):
+        n = len(block)
+        cell_w = 6.875 / n; img_h = cell_w * 0.97 * (480 / (854 * (CROP[1] - CROP[0])))
+        fig = plt.figure(figsize=(6.875, len(rows) * (img_h + 0.30) + 0.3))
+        gs = fig.add_gridspec(2 * len(rows), n, height_ratios=[img_h, 0.30] * len(rows), wspace=0.03, hspace=0.05,
+                              left=0.06, right=0.995, top=0.965, bottom=0.01)
+        for j, (tag, f, o) in enumerate(block):
+            fname = f"{f['vid']}_{f['frame']}.jpg"
+            img = Image.open(ROOT / "data" / "endoscapes" / "test" / fname).convert("RGB")
+            W, H = img.size; x0, x1 = int(CROP[0] * W), int(CROP[1] * W)
+            img = img.crop((x0, 0, x1, H))
+            d = R[fname]; B = np.array(d["boxes"]).reshape(-1, 4)
+            G = np.array(d["gt_boxes"]).reshape(-1, 4); GL = np.array(d["gt_labels"], int)
+            for i, (rname, key) in enumerate(rows):
+                ax = fig.add_subplot(gs[2 * i, j]); ax.imshow(img); ax.set_xticks([]); ax.set_yticks([])
+                lab_ax = fig.add_subplot(gs[2 * i + 1, j]); lab_ax.axis("off")
+                for sp in ax.spines.values():
+                    sp.set_visible(False)
+                if j == 0:
+                    ax.set_ylabel(rname, fontsize=7, rotation=90, labelpad=3,
+                                  color=ST.OURS if key == "surg" else ST.INK, weight="bold" if key == "surg" else "normal")
+                if i == 0:
+                    ax.set_title(f"{'abcdef'[3 * blk + j]}  operation {f['vid']}, frame {f['frame']}", fontsize=7.5, pad=3, loc="left")
+                fs = 6.5; placed = []
+                if key is None:
+                    for bx, l in zip(G, GL):
+                        if l in NAMES:
+                            ax.add_patch(patches.Rectangle((bx[0] - x0, bx[1]), bx[2] - bx[0], bx[3] - bx[1], fill=False, lw=1.0, ec=COL[l]))
+                            put_label(ax, placed, bx, x0, NAMES[l], COL[l], fs, img.size[0], img.size[1])
+                    txt, fc = ("CVS achieved", GOOD) if f["cvs_ok"] else ("CVS not achieved", NEUTRAL)
+                    lab_ax.text(0.0, 0.5, txt, fontsize=6.6, color="w", va="center", ha="left", transform=lab_ax.transAxes,
+                                bbox=dict(fc=fc, ec="none", pad=1.2))
                     continue
-                ok = f["y"][r] == t; b = B[r]
-                ax.add_patch(patches.Rectangle((b[0] - x0, b[1]), b[2] - b[0], b[3] - b[1], fill=False, lw=0.9,
-                                               ec=COL[t], ls="-" if ok else (0, (2, 1.2))))
-                put_label(ax, placed, b, x0, f"{NAMES[t]} {f['Pt'][r, t]:.2f}" + ("" if ok else " ×"), COL[t],
-                          fs, img.size[0], img.size[1])
-                shown = True
-            ok = f["cvs_ok"]
-            if cvs:                                   # every system states its CVS decision
-                txt, fc = ("CVS confirmed", GOOD) if ok else ("CVS confirmed ×", BAD)
-            elif key == "pw":                         # the point world always answers
-                txt, fc = ("CVS not achieved", NEUTRAL) if not ok else ("CVS not achieved ×", BAD)
-            else:                                     # a certifier that cannot confirm defers
-                txt, fc = "CVS: defer to surgeon", DEFER
-            ax.text(0.02, 0.97, txt, transform=ax.transAxes, va="top", fontsize=fs, color="w",
-                    bbox=dict(fc=fc, ec="none", pad=0.6))
-            if not shown:
-                ax.text(0.5, 0.05, "no label certified" if key != "pw" else "no label", transform=ax.transAxes,
-                        ha="center", fontsize=fs, color="w", bbox=dict(fc=DEFER,
-                                                                       ec="none", pad=0.6))
-    for ext in ("pdf", "png"):
-        fig.savefig(OUT / f"fig_qualitative.{ext}", dpi=300, bbox_inches="tight", pad_inches=0.02)
+                lab, cvs = o[key]
+                shown = False
+                for t, r in lab.items():
+                    if r is None:
+                        continue
+                    ok = f["y"][r] == t; bx = B[r]
+                    ax.add_patch(patches.Rectangle((bx[0] - x0, bx[1]), bx[2] - bx[0], bx[3] - bx[1], fill=False, lw=1.0,
+                                                   ec=COL[t], ls="-" if ok else (0, (2, 1.2))))
+                    put_label(ax, placed, bx, x0, f"{NAMES[t]} {f['Pt'][r, t]:.2f}" + ("" if ok else " ×"), COL[t], fs,
+                              img.size[0], img.size[1])
+                    shown = True
+                ok = f["cvs_ok"]
+                if cvs:
+                    txt, fc = ("CVS confirmed", GOOD) if ok else ("CVS confirmed ×", BAD)
+                elif key == "pw":
+                    txt, fc = ("CVS not achieved", NEUTRAL) if not ok else ("CVS not achieved ×", BAD)
+                else:
+                    txt, fc = ("CVS: defer to surgeon", DEFER)
+                lab_ax.text(0.0, 0.5, txt, fontsize=6.6, color="w", va="center", ha="left", transform=lab_ax.transAxes,
+                            bbox=dict(fc=fc, ec="none", pad=1.2))
+                if not shown:
+                    lab_ax.text(1.0, 0.5, "no label certified" if key != "pw" else "no label", fontsize=6.6, color=ST.MUTED,
+                                va="center", ha="right", transform=lab_ax.transAxes)
+        for ext in ("pdf", "png"):
+            fig.savefig(OUT / f"fig_qualitative_{'ab'[blk]}.{ext}", dpi=300, bbox_inches="tight", pad_inches=0.02)
+        plt.close(fig)
     (OUT / "fig_qualitative_cases.json").write_text(json.dumps(
         {"thresholds": {"id_frame": float(lam_id_frame), "id_surg": float(lam_id_surg),
                         "cvs_frame": float(lam_cvs_frame), "cvs_surg": float(lam_cvs_surg)},
          "cases": [{"tag": t, "vid": int(f["vid"]), "frame": int(f["frame"])} for t, f, _ in chosen]}, indent=1))
-    print("wrote", OUT / "fig_qualitative.pdf")
+    print("wrote", OUT / "fig_qualitative_a.pdf", OUT / "fig_qualitative_b.pdf")
 
 
 if __name__ == "__main__":
