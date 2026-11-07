@@ -23,3 +23,5 @@ Conventions checked by the scripts: statements are issued iff score > threshold;
 `ceil((V+1)(1-alpha))`-th smallest, +inf if it exceeds V; operations without unsafe scored frames are
 left out of calibration and counted (as error-free) in every test denominator; CRC uses the floor
 `floor((n+1) alpha) - 1`; conditional STOP never fires when `floor(alpha_s (V1+1)) = 0`.
+
+| Main §5 / supp. SAGES section (external multicentre evaluation) | `scripts/external/sages_external.py` (lock, fetch, extract, infer, evaluate), `scripts/external/sages_diagnostics.py` (post hoc) | `experiments/external_sages/{protocol.json,locked_cases.csv,logits.npz,results.csv,numbers.json,diagnostics_posthoc.json}` |

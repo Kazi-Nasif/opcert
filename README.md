@@ -27,6 +27,7 @@ ortools, matplotlib (`pip install -r requirements.txt`).
 | CholecT50 (Table 5) | `python scripts/cholect50_target.py --seed S`; `python scripts/cholect50_eval.py` |
 | Time-out (Fig. 6) | `python scripts/preclip.py`; `python scripts/review2/timeout_alarm.py` |
 | Re-targeted baselines, PAC, fixed split | `python scripts/review2/rebuttal.py`; `python scripts/review2/calib_conditional.py` |
+| External multicentre evaluation (SAGES CVS Challenge 2024; locked protocol in `experiments/external_sages/`) | `python scripts/external/sages_external.py {lock,fetch,extract,infer,evaluate}`; `python scripts/external/sages_diagnostics.py` |
 | Robustness (supplementary) | `python scripts/review/{summaries,selective,annotators,anatomy_robustness,shift,timeout_stability}.py` |
 | Numbers, tables, figures | `python scripts/paper_numbers.py`; `python scripts/make_tables.py`; `python scripts/review/make_review_tables.py`; `python scripts/review2/make_rebuttal_tables.py`; `python scripts/figures/*.py` |
 | Tests | `python -m pytest tests` |

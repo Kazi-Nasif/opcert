@@ -100,7 +100,9 @@ def score(frames, ovs, clip: bool):
             if r is None:
                 continue
             n_over += 1
-            ok = f["correct"][t] and (not clip or f["cvs_ok"])
+            # correctness of the region actually overlaid (for the point world this is its own MAP
+            # region, which need not be the certificate's candidate region)
+            ok = bool(f["y"][r] == t) and (not clip or f["cvs_ok"])
             n_correct += ok; bad |= not ok
         wrong_f += bad
         by_video[f["vid"]] = by_video.get(f["vid"], False) or bad
