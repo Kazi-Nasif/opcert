@@ -7,6 +7,7 @@ DINOv2-L CVS seeds 0/1/2, and the majority reference unless stated.
 | Paper item | Script | Result file |
 |---|---|---|
 | Main Tab. 1 (perception) | `scripts/evaluate.py`, `scripts/temporal/train_temporal.py` | `experiments/finetune/*/metrics.json`, `experiments/temporal/*` |
+| Main Fig. 1 (teaser), Supp. Fig. 1 (timeline) | `scripts/figures/fig_teaser.py`, `scripts/figures/fig_timeline.py` | `experiments/finetune/dinov2l_b8_s0/logits_{val,test}.npz`, `experiments/compare_all/compare_all.csv` |
 | Main Fig. 3, Tab. 3 | `scripts/compare_all.py` (+ `scripts/review2/rebuttal.py` for Bonferroni/PAC rows) | `experiments/compare_all/compare_all.csv`, `experiments/review/rebuttal_stream.csv` |
 | Main Tab. 2 (anatomy, Cholec80) | `scripts/surgery_level.py`, `scripts/cholec80_surgery_level.py` | `experiments/surgery_level/*.csv` |
 | Main Tab. 4 (time-out) | `scripts/review3/timeout_final.py` | `experiments/review3/timeout_final.csv`, `timeout_fixed.csv` |

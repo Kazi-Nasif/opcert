@@ -29,7 +29,14 @@ import style as ST  # noqa: E402
 ST.setup()
 
 
-def main():
+def select_operation():
+    """Thresholds at ALPHA on the calibration operations and the automatically selected test operation.
+
+    Returns a dict with the 1-fps score trace (t, p; minutes from the first assessed timestamp), the
+    assessed keyframes (kt, ky, kp), the two thresholds, the video id and the keyframe image files.
+    Shared with fig_teaser.py so that the main-paper teaser and this supplementary figure show the
+    same operation, thresholds and decisions.
+    """
     run = ROOT / "experiments" / "finetune" / "dinov2l_b8_s0"
     va, te = keyframes("val"), keyframes("test")
     sel = np.isin(va.vid, np.random.default_rng(0).choice(np.unique(va.vid), 10, replace=False))
@@ -59,10 +66,17 @@ def main():
                 best = (score, v, t, p, kt, ky, kp)
     _, v, t, p, kt, ky, kp = best
     t0 = t.min(); t, kt = (t - t0) / 60, (kt - t0) / 60
-
-    from PIL import Image
     files = {(int(a_), int(b_)): f for a_, b_, f in zip(te.vid, te.frame, te.files)}
     kfr = te.frame[te.vid == v][np.argsort(te.frame[te.vid == v])]
+    return dict(v=int(v), t=t, p=p, kt=kt, ky=ky, kp=kp, lam_frame=float(lam_frame), lam_op=float(lam_op),
+                files=files, kfr=kfr)
+
+
+def main():
+    S = select_operation()
+    v, t, p, kt, ky, kp, lam_frame, lam_op, files, kfr = (S[k] for k in ("v", "t", "p", "kt", "ky", "kp", "lam_frame", "lam_op", "files", "kfr"))
+
+    from PIL import Image
     fx = (kp > lam_frame) & ~ky
     i_false1 = int(np.flatnonzero(fx)[0]); i_falsemax = int(np.flatnonzero(fx)[np.argmax(kp[fx])])
     i_cvs = int(np.flatnonzero(ky)[-1])
