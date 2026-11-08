@@ -39,7 +39,10 @@ DOUBLE, SINGLE = 6.875, 3.25
 
 def setup():
     plt.rcParams.update({
-        "font.family": "sans-serif", "font.sans-serif": ["Nimbus Sans", "Liberation Sans", "DejaVu Sans"],
+        "font.family": "sans-serif",
+        # TrueType fonts only: with pdf.fonttype 42 matplotlib cannot embed CFF-flavoured OpenType fonts
+        # (e.g. the urw-base35 Nimbus Sans .otf) correctly, and macOS Preview crashes on such figures.
+        "font.sans-serif": ["Liberation Sans", "DejaVu Sans"],
         "font.size": 7.5, "axes.titlesize": 8, "axes.titleweight": "bold", "axes.titlelocation": "left",
         "axes.labelsize": 7.5, "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7,
         "axes.edgecolor": MUTED, "axes.labelcolor": INK, "xtick.color": MUTED, "ytick.color": MUTED,
