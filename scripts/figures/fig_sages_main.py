@@ -44,8 +44,8 @@ def main():
         ax[k].grid(axis="x", visible=False); ax[k].set_xlim(-0.6, len(ALPHAS) - 0.4)
     ax[0].set_ylim(0, 50); ax[0].set_ylabel("cases with ≥1 false confirmation (%)")
     ax[1].set_ylim(0, 100); ax[1].set_ylabel("sensitivity on CVS frames (%)")
-    ax[0].set_title("a  case error, exact 95% CI")
-    ax[1].set_title("b  sensitivity, bootstrap 95% CI")
+    ax[0].set_title("a  case error, exact 95% CI", x=-0.16)
+    ax[1].set_title("b  sensitivity, bootstrap 95% CI", x=-0.16)
     ax[0].text(0.02, 0.97, "300 test cases", transform=ax[0].transAxes, fontsize=6, color=ST.MUTED, va="top")
     # (c) leave-one-country-out at alpha = 0.10: one dot per held-out country, size = cases
     f2 = pd.read_csv(ROOT / "experiments" / "external_sages" / "results_full.csv")
@@ -63,7 +63,7 @@ def main():
     ax[2].set_ylabel("held-out country (test cases)")
     ax[2].set_xlim(0, 70); ax[2].set_ylim(-0.7, len(cs) - 0.3); ax[2].grid(axis="y", visible=False)
     ax[2].set_xlabel("cases with ≥1 false confirmation (%)")
-    ax[2].set_title("c  held-out countries, α = 0.10")
+    ax[2].set_title("c  held-out countries, α = 0.10", x=-0.14)
     # lay out first (so the long country tick labels of (c) get their space), then add the legend above the panels
     fig.tight_layout(w_pad=1.0)
     fig.subplots_adjust(wspace=0.7)    # a visible gap between (b) and the labels of (c)
