@@ -27,7 +27,7 @@ ALPHAS = (0.05, 0.10)
 def main():
     d = pd.read_csv(ROOT / "experiments" / "external_sages" / "results_full.csv")
     d = d[(d.w == 10) & d.analysis.str.startswith("F1")]
-    fig, ax = plt.subplots(1, 3, figsize=(ST.DOUBLE, 2.3), gridspec_kw=dict(width_ratios=[0.9, 0.9, 1.3]))
+    fig, ax = plt.subplots(1, 3, figsize=(ST.DOUBLE, 2.3), gridspec_kw=dict(width_ratios=[0.85, 0.85, 1.35]))
     for j, al in enumerate(ALPHAS):
         ax[0].plot([j - 0.45, j + 0.45], [100 * al] * 2, c=ST.INK, ls=(0, (1.2, 1.4)), lw=0.8, label="target (nominal level)" if j == 0 else None)
         for i, p in enumerate("ABC"):
@@ -63,8 +63,9 @@ def main():
     ax[2].set_xlim(0, 70); ax[2].set_ylim(-0.7, len(cs) - 0.3); ax[2].grid(axis="y", visible=False)
     ax[2].set_xlabel("cases with ≥1 false confirmation (%)")
     ax[2].set_title("c  held-out countries, α = 0.10")
+    # lay out first (so the long country tick labels of (c) get their space), then add the legend above the panels
+    fig.tight_layout(w_pad=1.6)
     fig.legend(loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.09), columnspacing=1.2, handletextpad=0.4)
-    fig.tight_layout()
     ST.save(fig, ROOT / "paper" / "figures" / "fig_sages_main")
     print("wrote fig_sages_main")
 
