@@ -14,7 +14,6 @@ operation each, in this order of case types:
   e  ours certifies CVS correctly
   f  any further test operation where ours certifies a correct label
   g  point world wrong, ours makes no wrong statement
-(The previous two-row version is scripts/figures/fig_qualitative_v1.py.)
 
     python scripts/figures/fig_qualitative.py
 """
