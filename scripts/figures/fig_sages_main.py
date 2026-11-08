@@ -27,7 +27,7 @@ ALPHAS = (0.05, 0.10)
 def main():
     d = pd.read_csv(ROOT / "experiments" / "external_sages" / "results_full.csv")
     d = d[(d.w == 10) & d.analysis.str.startswith("F1")]
-    fig, ax = plt.subplots(1, 3, figsize=(ST.DOUBLE, 2.3), gridspec_kw=dict(width_ratios=[0.85, 0.85, 1.35]))
+    fig, ax = plt.subplots(1, 3, figsize=(ST.DOUBLE, 2.3), gridspec_kw=dict(width_ratios=[0.8, 0.8, 1.4]))
     for j, al in enumerate(ALPHAS):
         ax[0].plot([j - 0.45, j + 0.45], [100 * al] * 2, c=ST.INK, ls=(0, (1.2, 1.4)), lw=0.8, label="target (nominal level)" if j == 0 else None)
         for i, p in enumerate("ABC"):
@@ -59,12 +59,14 @@ def main():
         ax[2].plot([100 * r.case_error_lo, 100 * r.case_error_hi], [k, k], c=ST.OURS, lw=0.9, zorder=2)
         ax[2].scatter(100 * r.case_error, k, s=14, c=ST.OURS, marker="o", ec="white", lw=0.4, zorder=3)
         ax[2].scatter(100 * b.case_error, k, s=12, c=ST.CRC, marker="s", ec="white", lw=0.4, zorder=3)
-    ax[2].set_yticks(yy); ax[2].set_yticklabels([f"country {int(r.country)} (n={int(r.n_test)})" for _, r in cs.iterrows()], fontsize=6.2)
+    ax[2].set_yticks(yy); ax[2].set_yticklabels([f"{int(r.country)} (n={int(r.n_test)})" for _, r in cs.iterrows()], fontsize=6.5)
+    ax[2].set_ylabel("held-out country (test cases)")
     ax[2].set_xlim(0, 70); ax[2].set_ylim(-0.7, len(cs) - 0.3); ax[2].grid(axis="y", visible=False)
     ax[2].set_xlabel("cases with ≥1 false confirmation (%)")
     ax[2].set_title("c  held-out countries, α = 0.10")
     # lay out first (so the long country tick labels of (c) get their space), then add the legend above the panels
-    fig.tight_layout(w_pad=1.6)
+    fig.tight_layout(w_pad=1.0)
+    fig.subplots_adjust(wspace=0.7)    # a visible gap between (b) and the labels of (c)
     fig.legend(loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.09), columnspacing=1.2, handletextpad=0.4)
     ST.save(fig, ROOT / "paper" / "figures" / "fig_sages_main")
     print("wrote fig_sages_main")
