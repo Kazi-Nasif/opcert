@@ -336,8 +336,7 @@ def figure(df):
     for si, (sname, x, polkey) in enumerate(sets):
         for j, al in enumerate(ALPHAS):
             base = si * 2.6 + j * 1.15
-            ax[0].fill_between([base - 0.45, base + 0.45], [100 * al] * 2, [60] * 2, color=ST.VIOLATE, lw=0, zorder=0)
-            ax[0].plot([base - 0.45, base + 0.45], [100 * al] * 2, c=ST.INK, ls=(0, (2, 1.5)), lw=0.8)
+            ax[0].plot([base - 0.45, base + 0.45], [100 * al] * 2, c=ST.INK, ls=(0, (1.2, 1.4)), lw=0.8, label="target (nominal level)" if (si == 0 and j == 0) else None)
             for i, p in enumerate("ABC"):
                 r = x[(polkey(x) == p) & np.isclose(x.alpha, al)].iloc[0]
                 c, mk, lab = cols[p]; xx = base + (i - 1) * 0.28
@@ -355,7 +354,7 @@ def figure(df):
     ax[0].set_ylim(0, 55); ax[0].set_ylabel("cases with ≥1 false confirmation (%)")
     ax[1].set_ylim(0, 100); ax[1].set_ylabel("sensitivity on CVS frames (%)")
     ax[0].set_title("a  case-level error, exact 95% CI"); ax[1].set_title("b  sensitivity, case-bootstrap 95% CI")
-    fig.legend(loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.08))
+    fig.legend(loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.08))
     fig.tight_layout()
     ST.save(fig, ROOT / "paper" / "figures" / "fig_sages")
 

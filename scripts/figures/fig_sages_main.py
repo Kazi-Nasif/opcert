@@ -29,8 +29,7 @@ def main():
     d = d[(d.w == 10) & d.analysis.str.startswith("F1")]
     fig, ax = plt.subplots(1, 3, figsize=(ST.DOUBLE, 2.3), gridspec_kw=dict(width_ratios=[0.9, 0.9, 1.3]))
     for j, al in enumerate(ALPHAS):
-        ax[0].fill_between([j - 0.45, j + 0.45], [100 * al] * 2, [60] * 2, color=ST.VIOLATE, lw=0, zorder=0)
-        ax[0].plot([j - 0.45, j + 0.45], [100 * al] * 2, c=ST.INK, ls=(0, (2, 1.5)), lw=0.8, label="nominal level" if j == 0 else None)
+        ax[0].plot([j - 0.45, j + 0.45], [100 * al] * 2, c=ST.INK, ls=(0, (1.2, 1.4)), lw=0.8, label="target (nominal level)" if j == 0 else None)
         for i, p in enumerate("ABC"):
             r = d[(d.policy == p) & np.isclose(d.alpha, al)].iloc[0]
             c, mk, lab = POL[p]; x = j + (i - 1) * 0.26
@@ -54,8 +53,7 @@ def main():
     f2["country"] = f2.analysis.str.split().str[-1].astype(int)
     cs = f2[f2.policy == "C"].sort_values("n_test", ascending=True)
     yy = np.arange(len(cs))
-    ax[2].fill_betweenx([-0.7, len(cs) - 0.3], 10, 60, color=ST.VIOLATE, lw=0, zorder=0)
-    ax[2].axvline(10, c=ST.INK, ls=(0, (2, 1.5)), lw=0.8)
+    ax[2].axvline(10, c=ST.INK, ls=(0, (1.2, 1.4)), lw=0.8)
     for k, (_, r) in enumerate(cs.iterrows()):
         b = f2[(f2.policy == "B") & (f2.country == r.country)].iloc[0]
         ax[2].plot([100 * r.case_error_lo, 100 * r.case_error_hi], [k, k], c=ST.OURS, lw=0.9, zorder=2)
@@ -65,7 +63,6 @@ def main():
     ax[2].set_xlim(0, 70); ax[2].set_ylim(-0.7, len(cs) - 0.3); ax[2].grid(axis="y", visible=False)
     ax[2].set_xlabel("cases with ≥1 false confirmation (%)")
     ax[2].set_title("c  held-out countries, α = 0.10")
-    ax[2].text(40, 3, "above the level", fontsize=6, color="#b4442a", va="center")
     fig.legend(loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.09), columnspacing=1.2, handletextpad=0.4)
     fig.tight_layout()
     ST.save(fig, ROOT / "paper" / "figures" / "fig_sages_main")
