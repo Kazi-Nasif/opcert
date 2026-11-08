@@ -21,8 +21,8 @@ SPEC = {   # file -> (error cells, their levels, column holding the method label
     "supp/sages_full.tex": ([2], ["row:0"], 1),
     "supp/sages_country.tex": ([3, 5], [0.10, 0.10], 0),
     "compare_main.tex": ([3, 7], [0.05, 0.10], 0),
-    "timeout_main.tex": ([3, 7], ["row:1", "row:1"], 0),
-    "decisions.tex": ([1], [0.10], 0),
+    "timeout_main.tex": ([3, 8], ["row:1", "row:1"], 0),
+    "decisions.tex": ([1, 4, 7], [0.10, 0.10, 0.10], 0),
 }
 OURS = re.compile(r"\(ours\)|\bOurs\b|\bours\b|C: ours|^C$|^C &")
 

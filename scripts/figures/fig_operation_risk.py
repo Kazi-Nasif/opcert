@@ -1,10 +1,13 @@
-"""Main figure: fraction of operations with >= 1 false certificate vs nominal alpha.
+"""Main figure: operation-level error against the nominal level, and what the guarantee costs.
 
-Panels: (a) Endoscapes CVS confirmation, (b) Endoscapes duct/artery identification,
-(c) Cholec80 CVS confirmation after recalibration on 20 Cholec80 videos.
-Points: mean over random video-level splits (and seeds), placed at their actual alpha; whiskers:
-2.5-97.5 % over splits in a lighter tint of the method colour.  White background, dotted target
-line labelled "target", our method drawn heaviest.  Full CVPR text width (6.875 in).
+Panels: (a) Endoscapes CVS confirmation and (b) Cholec80 CVS confirmation after recalibration on
+20 Cholec80 videos: fraction of operations with >= 1 false certificate vs nominal alpha, means at
+their actual alpha over random video-level splits x seeds (a: 200 x 3, b: 100 x 3), whiskers
+2.5-97.5 % across split-seed evaluations.  (c) Endoscapes: sensitivity (share of CVS keyframes
+confirmed) against the *observed* per-operation error for calibration over operations and for
+frame-level CRC, each on raw (solid) and 10 s-smoothed (dashed) scores; filled markers are the
+calibrated operating points (alpha = .05/.10/.20), hollow markers a descriptive threshold sweep
+(alpha = .002-.02).  Full CVPR text width.
 
     python scripts/figures/fig_operation_risk.py
 """
@@ -27,6 +30,8 @@ STYLE = {"surgery": ("Per operation (ours)", ST.OURS, "o", "-", 2.2),
          "pooled": ("Frame-level CRC", ST.CRC, "s", "-", 1.5),
          "ltt": ("Frame-level LTT", ST.LTT, "^", (0, (4, 2)), 1.5)}
 ALPHAS = [0.05, 0.10, 0.20]
+CAL = (0.05, 0.10, 0.20)        # calibrated operating points in panel (c); other alphas are a descriptive sweep
+SMOOTH_LS = (0, (4, 2))         # dashed = 10 s smoothing in panel (c)
 
 
 def series(df, col, method_map):
@@ -62,24 +67,64 @@ def panel(ax, S, title, subtitle):
     ax.set_yticks([0, .2, .4, .6, .8, 1]); ax.set_yticklabels(["0", "20", "40", "60", "80", "100"])
 
 
+def panel_frontier(ax, arch="dinov2l_b8"):
+    """Sensitivity vs observed per-operation error (Endoscapes); the essential curves of the supplementary frontier."""
+    d = pd.read_csv(ROOT / "experiments" / "compare_all" / "compare_all.csv")
+    d = d[d.run.str.startswith(arch)]
+    # method -> (legend label, colour, marker, linestyle, linewidth, z)
+    curves = {
+        "Surgery-level (ours)": ("Per operation (ours)", ST.OURS, "o", "-", 2.2, 6),
+        "Surgery-level + smoothing (ours)": ("Per operation + 10 s smoothing", ST.OURS, "o", SMOOTH_LS, 1.6, 5),
+        "CRC (= frame-level)": ("Frame-level CRC", ST.CRC, "s", "-", 1.5, 4),
+        "CRC + smoothing (10 s)": ("Frame-level CRC + 10 s smoothing", ST.CRC, "s", SMOOTH_LS, 1.2, 4),
+    }
+    curve_pts, handles = {}, []
+    for m, (lab, c, mk, ls, lw, z) in curves.items():
+        g = d[d.method == m].groupby("alpha")[["ops_false_ge1", "sens"]].mean().sort_index()
+        curve_pts[m] = g
+        handles += ax.plot(g.ops_false_ge1, g.sens, c=c, ls=ls, lw=lw, zorder=z, label=lab)
+        cal = g[g.index.isin(CAL)]; swp = g[~g.index.isin(CAL)]
+        ax.scatter(cal.ops_false_ge1, cal.sens, marker=mk, s=20, c=c, ec="white", lw=0.5, zorder=z + 1)
+        ax.scatter(swp.ops_false_ge1, swp.sens, marker=mk, s=14, facecolors="white", edgecolors=c, lw=0.8, zorder=z + 1)
+    mp = d[d.method == "Point world (MAP)"][["ops_false_ge1", "sens"]].mean()
+    handles.append(ax.scatter([mp.ops_false_ge1], [mp.sens], marker="*", s=55, c=ST.POINT, zorder=7, label="Point world"))
+    leg1 = ax.legend(handles=handles, loc="upper left", fontsize=6, frameon=False, handlelength=2.2, handletextpad=0.5,
+                     borderaxespad=0.3, labelspacing=0.35)
+    ax.add_artist(leg1)
+    # marker semantics
+    h1 = ax.scatter([], [], marker="o", s=20, c=ST.MUTED, ec="white", lw=0.5, label="calibrated, α = .05 / .10 / .20")
+    h2 = ax.scatter([], [], marker="o", s=14, facecolors="white", edgecolors=ST.MUTED, lw=0.8, label="threshold sweep, α = .002–.02")
+    ax.legend(handles=[h1, h2], loc="lower right", fontsize=6, frameon=False, handletextpad=0.3, borderaxespad=0.2)
+    ax.set_title("c  Sensitivity against observed error\n", pad=2)
+    ax.text(0.0, 1.02, "Endoscapes · observed, not nominal, error", transform=ax.transAxes, fontsize=7, color=ST.MUTED,
+            ha="left", va="bottom")
+    ax.set_xlabel("operations with ≥1 false certificate (%)")
+    ax.set_ylabel("sensitivity (% of CVS frames confirmed)")
+    ax.set_xlim(0, 0.9); ax.set_ylim(0, 0.92)
+    ax.set_xticks([0, .2, .4, .6, .8]); ax.set_xticklabels(["0", "20", "40", "60", "80"])
+    ax.set_yticks([0, .2, .4, .6, .8]); ax.set_yticklabels(["0", "20", "40", "60", "80"])
+    # caption support: where does frame-level CRC at its smallest sweep levels land relative to our curve?
+    crc = curve_pts["CRC (= frame-level)"]; ours = curve_pts["Surgery-level (ours)"]
+    for a_ in (0.002, 0.005, 0.01):
+        print(f"CRC alpha={a_}: ops_false={crc.loc[a_].ops_false_ge1:.3f} sens={crc.loc[a_].sens:.3f}")
+    for a_ in CAL:
+        print(f"ours alpha={a_}: ops_false={ours.loc[a_].ops_false_ge1:.3f} sens={ours.loc[a_].sens:.3f}")
+    print(f"point world: ops_false={mp.ops_false_ge1:.3f} sens={mp.sens:.3f}")
+
+
 def main():
-    fig, axes = plt.subplots(1, 3, figsize=(ST.DOUBLE, 2.15), sharey=True)
-    # (a) Endoscapes CVS, DINOv2 seeds
+    fig = plt.figure(figsize=(ST.DOUBLE, 2.25))
+    gs = fig.add_gridspec(1, 3, width_ratios=[1, 1, 1.15])
+    ax_a = fig.add_subplot(gs[0]); ax_b = fig.add_subplot(gs[1], sharey=ax_a); ax_c = fig.add_subplot(gs[2])
+    # (a) Endoscapes CVS, DINOv2 seeds (200 splits x 3 seeds)
     r = pd.read_csv(ROOT / "experiments" / "resplit" / "resplit.csv")
     r = r[r.run.str.startswith("dinov2l")]
     S = series(r, "video_false_confirm", {"surgery": "surgery-level (video max)",
                                           "pooled": "CRC-Mondrian (frames pooled)",
                                           "ltt": "LTT (frames pooled)", "map": "MAP (point world)"})
-    panel(axes[0], S, "a  CVS confirmation", "Endoscapes")
-    axes[0].set_ylabel("operations with ≥1 false certificate (%)")
-    # (b) Endoscapes identification
-    a = pd.read_csv(ROOT / "experiments" / "surgery_level" / "anatomy_surgery_level.csv")
-    a = a[a.task == "identify"]
-    S = series(a, "surgeries_with_error", {"surgery": "Surgery-level",
-                                           "pooled": "Frame-level ours (frames pooled)",
-                                           "ltt": "LTT (frames pooled)", "map": "MAP (point world)"})
-    panel(axes[1], S, "b  Duct / artery identification", "Endoscapes")
-    # (c) Cholec80 after local recalibration (20 videos), dataset's CVS definition
+    panel(ax_a, S, "a  CVS confirmation", "Endoscapes")
+    ax_a.set_ylabel("operations with ≥1 false certificate (%)")
+    # (b) Cholec80 after local recalibration (20 videos; 100 splits x 3 seeds), dataset's CVS definition
     c = pd.read_csv(ROOT / "experiments" / "surgery_level" / "cholec80_surgery_level.csv")
     cm = c[(c.ref == "cvs_authors") & (c.scenario == "B: recalibrate on 20 Cholec80 videos")]
     S = series(cm, "surgeries_with_false_confirm", {"surgery": "Surgery-level",
@@ -87,8 +132,11 @@ def main():
                                                     "ltt": "LTT (frames pooled)", "map": "MAP (point world)"})
     ma = c[(c.ref == "cvs_authors") & (c.method == "MAP (point world)")]["surgeries_with_false_confirm"]
     S["map"] = (ma.mean(), ma.min(), ma.max())
-    panel(axes[2], S, "c  CVS confirmation", "Cholec80 · recalibrated")
-    h, l = axes[0].get_legend_handles_labels()
+    panel(ax_b, S, "b  CVS confirmation", "Cholec80 · recalibrated")
+    ax_b.tick_params(labelleft=False)
+    # (c) sensitivity vs observed per-operation error, Endoscapes
+    panel_frontier(ax_c)
+    h, l = ax_a.get_legend_handles_labels()
     order = [l.index(x) for x in (STYLE["surgery"][0], STYLE["pooled"][0], STYLE["ltt"][0], "Point world")]
     fig.legend([h[i] for i in order], [l[i] for i in order], loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.09),
                columnspacing=1.6, handletextpad=0.5)
