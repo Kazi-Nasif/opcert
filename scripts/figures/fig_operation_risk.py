@@ -9,8 +9,14 @@ frame-level CRC, each on raw (solid) and 10 s-smoothed (dashed) scores; filled m
 calibrated operating points (alpha = .05/.10/.20), hollow markers a descriptive threshold sweep
 (alpha = .002-.02).  Full CVPR text width.
 
-    python scripts/figures/fig_operation_risk.py
+Three methods are highlighted (operation-level calibration, its 10 s-smoothed variant, frame-level
+CRC); frame-level LTT and the point world are drawn muted in (a, b) and reported in full in the
+supplement.  Whiskers are 2.5-97.5 % percentiles across split-seed evaluations, not confidence
+intervals.
+
+    python scripts/figures/fig_operation_risk.py [--suffix _v2]
 """
+import argparse
 from pathlib import Path
 
 import matplotlib
@@ -25,10 +31,13 @@ OUT = ROOT / "paper" / "figures"; OUT.mkdir(parents=True, exist_ok=True)
 import style as ST  # noqa: E402
 
 ST.setup()
-# key -> (label, colour, marker, linestyle, linewidth)
+# key -> (label, colour, marker, linestyle, linewidth); the last two are muted context
+MUTED = "#B9BDC3"
 STYLE = {"surgery": ("Per operation (ours)", ST.OURS, "o", "-", 2.2),
+         "surgery_s": ("Per operation + 10 s smoothing (ours)", ST.OURS, "o", (0, (4, 2)), 1.6),
          "pooled": ("Frame-level CRC", ST.CRC, "s", "-", 1.5),
-         "ltt": ("Frame-level LTT", ST.LTT, "^", (0, (4, 2)), 1.5)}
+         "ltt": ("Frame-level LTT (muted)", MUTED, "^", (0, (2, 2)), 0.9)}
+HIGHLIGHT = ("surgery", "surgery_s", "pooled")
 ALPHAS = [0.05, 0.10, 0.20]
 CAL = (0.05, 0.10, 0.20)        # calibrated operating points in panel (c); other alphas are a descriptive sweep
 SMOOTH_LS = (0, (4, 2))         # dashed = 10 s smoothing in panel (c)
@@ -50,16 +59,19 @@ def panel(ax, S, title, subtitle):
     xmax = 0.225
     ax.plot([0, xmax], [0, xmax], ls=(0, (1.2, 1.4)), c=ST.INK, lw=0.8, zorder=1)
     ax.text(0.194, 0.228, "target", fontsize=6.3, color=ST.INK, ha="right", va="bottom", zorder=5)
-    ax.axhline(S["map"][0], ls=(0, (5, 2.5)), c=ST.POINT, lw=0.9, label="Point world", zorder=2)
-    for key in ("pooled", "ltt", "surgery"):
+    ax.axhline(S["map"][0], ls=(0, (5, 2.5)), c=MUTED, lw=0.9, label="Point world (muted)", zorder=2)
+    for key in ("ltt", "pooled", "surgery_s", "surgery"):
+        if key not in S:
+            continue
         m, lo, hi = S[key]
         m, lo, hi = m.loc[ALPHAS].values, lo.loc[ALPHAS].values, hi.loc[ALPHAS].values
         lab, c, mk, ls, lw = STYLE[key]
-        x = np.array(ALPHAS)
-        ax.errorbar(x, m, yerr=[m - lo, hi - m], fmt="none", ecolor=ST.tint(c, 0.45), elinewidth=0.8, capsize=1.8,
-                    capthick=0.8, zorder=2)
-        ax.plot(x, m, c=c, ls=ls, lw=lw, marker=mk, ms=4 if key == "surgery" else 3.6, mec="white", mew=0.6,
-                label=lab, zorder=4 if key == "surgery" else 3)
+        x = np.array(ALPHAS) + (0.007 if key == "surgery_s" else 0.0)   # dodge: raw and smoothed coincide to 0.2 points
+        if key in HIGHLIGHT:                      # whiskers only for the highlighted methods
+            ax.errorbar(x, m, yerr=[m - lo, hi - m], fmt="none", ecolor=ST.tint(c, 0.45), elinewidth=0.8, capsize=1.8,
+                        capthick=0.8, zorder=2)
+        ax.plot(x, m, c=c, ls=ls, lw=lw, marker=mk, ms=4 if key == "surgery" else 3.4, mec="white" if key in HIGHLIGHT else c,
+                mew=0.6, label=lab, zorder=4 if key == "surgery" else 3)
     ax.set_title(f"{title}\n", pad=2)
     ax.text(0.0, 1.02, subtitle, transform=ax.transAxes, fontsize=7, color=ST.MUTED, ha="left", va="bottom")
     ax.set_xlabel("nominal error level α"); ax.set_xticks(ALPHAS); ax.set_xticklabels(["5%", "10%", "20%"])
@@ -87,7 +99,7 @@ def panel_frontier(ax, arch="dinov2l_b8"):
         ax.scatter(cal.ops_false_ge1, cal.sens, marker=mk, s=20, c=c, ec="white", lw=0.5, zorder=z + 1)
         ax.scatter(swp.ops_false_ge1, swp.sens, marker=mk, s=14, facecolors="white", edgecolors=c, lw=0.8, zorder=z + 1)
     mp = d[d.method == "Point world (MAP)"][["ops_false_ge1", "sens"]].mean()
-    handles.append(ax.scatter([mp.ops_false_ge1], [mp.sens], marker="*", s=55, c=ST.POINT, zorder=7, label="Point world"))
+    handles.append(ax.scatter([mp.ops_false_ge1], [mp.sens], marker="*", s=55, c=MUTED, zorder=7, label="Point world (muted)"))
     leg1 = ax.legend(handles=handles, loc="upper left", fontsize=6, frameon=False, handlelength=2.2, handletextpad=0.5,
                      borderaxespad=0.3, labelspacing=0.35)
     ax.add_artist(leg1)
@@ -112,7 +124,7 @@ def panel_frontier(ax, arch="dinov2l_b8"):
     print(f"point world: ops_false={mp.ops_false_ge1:.3f} sens={mp.sens:.3f}")
 
 
-def main():
+def main(suffix=""):
     fig = plt.figure(figsize=(ST.DOUBLE, 2.25))
     gs = fig.add_gridspec(1, 3, width_ratios=[1, 1, 1.15])
     ax_a = fig.add_subplot(gs[0]); ax_b = fig.add_subplot(gs[1], sharey=ax_a); ax_c = fig.add_subplot(gs[2])
@@ -122,6 +134,11 @@ def main():
     S = series(r, "video_false_confirm", {"surgery": "surgery-level (video max)",
                                           "pooled": "CRC-Mondrian (frames pooled)",
                                           "ltt": "LTT (frames pooled)", "map": "MAP (point world)"})
+    # the smoothed operation-level policy of Table 3, same 200 splits x 3 seeds (raw curves agree to 4 decimals)
+    d = pd.read_csv(ROOT / "experiments" / "compare_all" / "compare_all.csv")
+    d = d[d.run.str.startswith("dinov2l_b8") & (d.method == "Surgery-level + smoothing (ours)")]
+    g = d.groupby("alpha")["ops_false_ge1"]
+    S["surgery_s"] = (g.mean(), g.quantile(0.025), g.quantile(0.975))
     panel(ax_a, S, "a  CVS confirmation", "Endoscapes")
     ax_a.set_ylabel("operations with ≥1 false certificate (%)")
     # (b) Cholec80 after local recalibration (20 videos; 100 splits x 3 seeds), dataset's CVS definition
@@ -137,13 +154,15 @@ def main():
     # (c) sensitivity vs observed per-operation error, Endoscapes
     panel_frontier(ax_c)
     h, l = ax_a.get_legend_handles_labels()
-    order = [l.index(x) for x in (STYLE["surgery"][0], STYLE["pooled"][0], STYLE["ltt"][0], "Point world")]
-    fig.legend([h[i] for i in order], [l[i] for i in order], loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.09),
-               columnspacing=1.6, handletextpad=0.5)
+    order = [l.index(x) for x in (STYLE["surgery"][0], STYLE["surgery_s"][0], STYLE["pooled"][0], STYLE["ltt"][0],
+                                  "Point world (muted)")]
+    fig.legend([h[i] for i in order], [l[i] for i in order], loc="upper center", ncol=5, bbox_to_anchor=(0.5, 1.09),
+               columnspacing=1.2, handletextpad=0.5, fontsize=6.6)
     fig.tight_layout(w_pad=0.8)
-    ST.save(fig, OUT / "fig_operation_risk")
-    print("wrote", OUT / "fig_operation_risk.pdf")
+    ST.save(fig, OUT / f"fig_operation_risk{suffix}")
+    print("wrote", OUT / f"fig_operation_risk{suffix}.pdf")
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser(); ap.add_argument("--suffix", default="")
+    main(ap.parse_args().suffix)
