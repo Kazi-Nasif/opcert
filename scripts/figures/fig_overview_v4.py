@@ -139,8 +139,8 @@ def tag_icon(ax, cx, cy, w=0.14, h=0.09, c=INK):
     ax.add_patch(Rectangle((cx - w / 2, cy - h / 2 - 0.03), w * 0.55, 0.03, fc=c, ec="none", zorder=8))
 
 
-def pill(ax, x, y, w, h, s, fc, color="white"):
-    rbox(ax, x, y, w, h, fc, r=h / 2, z=4); text(ax, x + w / 2, y + h / 2, s, 6.6, "bold", color=color)
+def pill(ax, x, y, w, h, s, fc, color="white", size=6.6):
+    rbox(ax, x, y, w, h, fc, r=h / 2, z=4); text(ax, x + w / 2, y + h / 2, s, size, "bold", color=color)
 
 
 # ----------------------------------------------------------------------------- data
@@ -209,13 +209,38 @@ def main():
     sx_, sy_, sw_, sh_ = 3.62, 0.36, 1.40, 0.92
     rbox(ax, sx_, sy_, sw_, sh_, YEL, r=0.06)
     text(ax, sx_ + sw_ / 2, sy_ + 0.10, "One score per operation", 6.8, "bold")
-    stats = [(check_icon, r"CVS stream: $m_v=\max\,p$ on frames", "without CVS (any false confirmation)"),
-             (clock_icon, r"time-out: $m_v=p$ at the last frame", "before the first clip"),
-             (tag_icon, r"anatomy: $m_v=$ most confident", "wrong duct / artery score")]
-    for k, (ic, a, b) in enumerate(stats):
-        yy = sy_ + 0.29 + k * 0.23
-        ic(ax, sx_ + 0.12, yy + 0.05, **({} if ic is tag_icon else {"r": 0.05}))
-        text(ax, sx_ + 0.24, yy - 0.01, a, XS, ha="left"); text(ax, sx_ + 0.24, yy + 0.10, b, XS, ha="left", color=MUTE)
+    def cells_row(x, y, vals, cvs, outline, c=0.065, g=0.008):
+        for k, (pv, cv) in enumerate(zip(vals, cvs)):
+            col = plt.cm.Blues(0.15 + 0.75 * pv) if not cv else "#BFE6C3"
+            ax.add_patch(Rectangle((x + k * (c + g), y - c / 2), c, c, fc=col, ec="none", zorder=4))
+        if outline is not None:
+            xo = x + outline * (c + g)
+            ax.add_patch(Rectangle((xo - 0.007, y - c / 2 - 0.007), c + 0.014, c + 0.014, fill=False, ec=INK, lw=0.9, zorder=6))
+        return x + len(vals) * (c + g) - g
+    rows_y = [sy_ + 0.27, sy_ + 0.49, sy_ + 0.72]
+    gx0 = sx_ + 0.26
+    # CVS stream: highest score on a frame without CVS
+    check_icon(ax, sx_ + 0.12, rows_y[0], r=0.05)
+    xe = cells_row(gx0, rows_y[0], [0.05, 0.15, 0.35, 0.62, 0.25, 0.85, 0.92], [0, 0, 0, 0, 0, 1, 1], 3)
+    text(ax, xe + 0.07, rows_y[0], r"$\max p$, no CVS", XS, ha="left")
+    # time-out: score at the last frame before the first clip
+    clock_icon(ax, sx_ + 0.12, rows_y[1], r=0.05)
+    xe = cells_row(gx0, rows_y[1], [0.05, 0.12, 0.30, 0.55, 0.70, 0.80, 0.90], [0, 0, 0, 0, 0, 1, 1], 4)
+    xc_ = gx0 + 5 * (0.065 + 0.008) - 0.004
+    ax.plot([xc_, xc_], [rows_y[1] - 0.075, rows_y[1] + 0.075], c=STOP, lw=1.1, zorder=7)
+    ax.add_patch(Polygon([(xc_ - 0.025, rows_y[1] - 0.10), (xc_ + 0.025, rows_y[1] - 0.10), (xc_, rows_y[1] - 0.07)], fc=STOP, ec="none", zorder=7))
+    text(ax, xe + 0.07, rows_y[1], r"$p$ before 1st clip", XS, ha="left")
+    # anatomy: most confident wrong duct / artery label
+    tag_icon(ax, sx_ + 0.12, rows_y[2])
+    for k, (ln, col, lab) in enumerate([(0.40, OK, "duct"), (0.26, STOP, "artery")]):
+        yy = rows_y[2] - 0.045 + k * 0.06
+        ax.add_patch(Rectangle((gx0, yy - 0.02), 0.44, 0.04, fc="#E6E6E6", ec="none", zorder=4))
+        ax.add_patch(Rectangle((gx0, yy - 0.02), ln, 0.04, fc=col, ec="none", zorder=5))
+        text(ax, gx0 + 0.02, yy, lab, 4.6, color="white", ha="left", weight="bold")
+    xo = gx0 + 0.26
+    ax.add_patch(Rectangle((xo - 0.03, rows_y[2] + 0.015 - 0.03), 0.06, 0.06, fill=False, ec=INK, lw=0.9, zorder=6))
+    text(ax, gx0 + 0.44 + 0.07, rows_y[2], "top wrong label", XS, ha="left")
+    text(ax, sx_ + sw_ / 2, sy_ + sh_ - 0.06, "outlined cell = $m_v$", 5.2, color=MUTE)
     arrow(ax, sx_ + sw_ + 0.02, cy, sx_ + sw_ + 0.12, cy, ls=DASH)
     # order statistic of the real calibration maxima
     dx, dy, dw, dh = 5.16, 0.40, 0.60, 0.74
@@ -279,17 +304,39 @@ def main():
             pill(ax, 4.06 + q * 0.40, yy - 0.09, 0.36, 0.18, s, c)
     text(ax, 3.84, 1.80, "issue, else defer to the surgeon", XS, color=MUTE, ha="left")
     # guarantee block
-    gx_, gy_, gw_, gh_ = 5.30, 1.86, 1.46, 0.98
+    gx_, gy_, gw_, gh_ = 5.30, 1.84, 1.46, 1.00
     rbox(ax, gx_, gy_, gw_, gh_, YEL, ec=LINE, lw=0.7, r=0.05, ls=DASH)
-    text(ax, gx_ + gw_ / 2, gy_ + 0.10, "Guarantee", 6.6, "bold")
-    text(ax, gx_ + gw_ / 2, gy_ + 0.22, "operations exchangeable", XS, color=MUTE)
-    glines = [r"$P(\mathrm{false\ statement}\mid\mathrm{operation})\leq\alpha$",
-              r"risk $R\sim\mathrm{Beta}(V{+}1{-}j,\,j)$",
-              r"time-out: $P(\mathrm{confirm}\mid\neg\mathrm{CVS})\leq\alpha_c$",
-              r"$\quad\quad\ \ P(\mathrm{stop}\mid\mathrm{CVS})\leq\alpha_s$",
-              r"clip: anatomy $\wedge$ CVS, $\alpha/2$ each"]
-    for k, s in enumerate(glines):
-        text(ax, gx_ + 0.06, gy_ + 0.36 + k * 0.125, s, 5.4, ha="left")
+    text(ax, gx_ + gw_ / 2, gy_ + 0.09, "Guarantee", 6.6, "bold")
+    text(ax, gx_ + gw_ / 2, gy_ + 0.19, "operations exchangeable", XS, color=MUTE)
+    # (A) at most a fraction alpha of operations receive a false statement
+    ya = gy_ + 0.34
+    for k in range(10):
+        ax.add_patch(Rectangle((gx_ + 0.08 + k * 0.085, ya - 0.035), 0.07, 0.07, fc=STOP if k == 7 else BLU[1], ec="none", zorder=4))
+    cross_x = gx_ + 0.08 + 7 * 0.085 + 0.035
+    text(ax, cross_x, ya, r"$\times$", 6, color="white", weight="bold")
+    text(ax, gx_ + 0.08 + 10 * 0.085 + 0.04, ya, r"$\leq\alpha$ false", XS, ha="left")
+    # (B) risk over calibration sets: Beta(V+1-j, j)
+    yb_ = gy_ + 0.52; bw_, bh_ = 0.60, 0.15
+    aB, bB = len(m) + 1 - j, j
+    xs_ = np.linspace(0.001, 0.4, 200); dens = xs_ ** (aB - 1) * (1 - xs_) ** (bB - 1); dens /= dens.max()
+    px_ = gx_ + 0.08 + xs_ / 0.4 * bw_; py_ = yb_ + bh_ / 2 - dens * bh_
+    ax.fill_between(px_, yb_ + bh_ / 2, py_, color=BLU[1], alpha=0.8, zorder=4, lw=0)
+    ax.plot(px_, py_, c=BLU[2], lw=0.7, zorder=5)
+    ax.plot([gx_ + 0.08, gx_ + 0.08 + bw_], [yb_ + bh_ / 2] * 2, c=LINE, lw=0.5, zorder=5)
+    xa_ = gx_ + 0.08 + ALPHA / 0.4 * bw_
+    ax.plot([xa_, xa_], [yb_ - bh_ / 2, yb_ + bh_ / 2], c=INK, lw=0.7, ls=(0, (2, 1.5)), zorder=6)
+    text(ax, xa_ + 0.025, yb_ + bh_ / 2 - 0.015, r"$\alpha$", 5.5, va="bottom", ha="left")
+    text(ax, gx_ + 0.08 + bw_ + 0.08, yb_, r"$R\sim\mathrm{Beta}(V{+}1{-}j,\,j)$", XS, ha="left")
+    # (C) time-out: confirm given no CVS, stop given CVS
+    yc_ = gy_ + 0.70
+    clock_icon(ax, gx_ + 0.12, yc_ + 0.055, r=0.045)
+    pill(ax, gx_ + 0.24, yc_ - 0.055, 0.30, 0.11, "confirm", OK, size=5.4); text(ax, gx_ + 0.58, yc_, r"given no CVS: $\leq\alpha_c$", XS, ha="left")
+    pill(ax, gx_ + 0.24, yc_ + 0.11 - 0.055, 0.30, 0.11, "stop", STOP, size=5.4); text(ax, gx_ + 0.58, yc_ + 0.11, r"given CVS: $\leq\alpha_s$", XS, ha="left")
+    # (D) clip permission composes anatomy and CVS
+    yd_ = gy_ + 0.93
+    text(ax, gx_ + 0.12, yd_, "clip:", XS)
+    tag_icon(ax, gx_ + 0.34, yd_, w=0.11, h=0.07); text(ax, gx_ + 0.46, yd_, r"$\wedge$", 6.5)
+    check_icon(ax, gx_ + 0.58, yd_, r=0.045); text(ax, gx_ + 0.68, yd_, r"at $\alpha/2$ each", XS, ha="left")
 
     # ================================================================= legend
     ly = 3.06
