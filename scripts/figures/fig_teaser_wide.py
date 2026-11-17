@@ -5,8 +5,8 @@ actually rate CVS achieved.
 
 Operation, thresholds and smoothing come from fig_timeline.select_operation() (video 194, alpha = 0.05,
 10 s causal smoothing, DINOv2-L seed 0).  Bands are measured, not modelled:
-  wheat  min-max of the smoothed score across the three model seeds (each with its own temperature)
-  blue   min-max of the unsmoothed 1 fps scores inside the 10 s causal window of seed 0
+  pale teal  min-max of the smoothed score across the three model seeds (each with its own temperature)
+  pale blue  min-max of the unsmoothed 1 fps scores inside the 10 s causal window of seed 0
 Four frames: first false confirmation, highest-scoring false confirmation, first surgeon-rated CVS
 timestamp, and the last assessed timestamp (CVS achieved).
 
@@ -32,7 +32,8 @@ import style as ST  # noqa: E402
 
 ST.setup()
 plt.rcParams.update({"font.size": 8.5, "axes.labelsize": 8.5, "xtick.labelsize": 8.5, "ytick.labelsize": 8.5})
-WHEAT, BLUE, BLUE_DARK, RED, BLACK = "#F5DEB3", "#9ED8F0", "#2F4FA2", "#E53B2C", "#111111"
+# palette of Figs. 3 and 4: deep blue, deep teal, vermillion; bands are pale tints of the blue and the teal
+WHEAT, BLUE, BLUE_DARK, TEAL, RED, BLACK = "#CFEAE4", "#D3E1EF", "#0B4F8C", "#0A7F62", "#C8440A", "#111111"
 W, H = ST.DOUBLE, 2.3
 
 
@@ -90,9 +91,9 @@ def main():
     # ---- score trace
     ax = fig.add_axes([0.055, 0.15, 0.935, 1 - (top + fh + cap + 0.04) / H - 0.15])
     tt = traces[0][0]
-    ax.fill_between(tt, rlo, rhi, color=BLUE, lw=0, zorder=1, alpha=0.8)
-    ax.fill_between(tt, lo, hi, color=WHEAT, lw=0, zorder=0, alpha=0.9)
-    ax.plot(tt, p, c=BLACK, lw=1.6, zorder=4)
+    ax.fill_between(tt, rlo, rhi, color=BLUE, lw=0, zorder=1)
+    ax.fill_between(tt, lo, hi, color=WHEAT, lw=0, zorder=2)
+    ax.plot(tt, p, c=BLACK, lw=1.7, zorder=4)
     ax.set_xlim(0, kt.max() + 0.25); ax.set_ylim(0, 1.0); ax.set_yticks([0, .2, .4, .6, .8, 1.0])
     # frame-level threshold: blue dashed up to the first false confirmation, then a solid red arrow to the CVS line
     ax.plot([0, t_false], [lam_frame, lam_frame], c=BLUE_DARK, ls=(0, (5, 3)), lw=1.3, zorder=3)
@@ -100,9 +101,9 @@ def main():
                 arrowprops=dict(arrowstyle="-|>", color=RED, lw=2.0, mutation_scale=14, shrinkA=0, shrinkB=0), zorder=5)
     ax.plot([t_false, t_false], [0, lam_frame], c=BLUE_DARK, ls=(0, (5, 3)), lw=1.3, zorder=3)
     ax.scatter([t_false], [lam_frame], s=70, c=RED, zorder=6)
-    ax.axhline(lam_op, c=BLUE_DARK, ls=(0, (2, 2)), lw=1.2, zorder=3)
+    ax.axhline(lam_op, c=TEAL, ls=(0, (2, 2)), lw=1.4, zorder=3)
     ax.axvline(t_cvs, c=RED, ls=(0, (4, 2)), lw=1.3, zorder=3)
-    ax.axvline(kt.max(), c="#777777", ls=":", lw=0.9)
+    ax.axvline(kt.max(), c="#555555", ls=":", lw=0.9)
     # labels, all black
     ax.text(0.03, lam_frame + 0.03, "frame-level threshold (CRC)", fontsize=8, color=BLACK, va="bottom")
     ax.text(0.03, lam_op + 0.03, "per-operation threshold (ours)", fontsize=8, color=BLACK, va="bottom")
