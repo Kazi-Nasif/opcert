@@ -33,7 +33,7 @@ plt.rcParams.update({"font.size": 10, "axes.labelsize": 10, "xtick.labelsize": 1
                      "axes.labelcolor": "#111111", "xtick.color": "#111111", "ytick.color": "#111111"})
 # palette of Figs. 3 and 4: deep blue, deep teal, vermillion; bands are pale tints of the blue and the teal
 WHEAT, BLUE, BLUE_DARK, TEAL, RED, BLACK = "#CFEAE4", "#D3E1EF", "#0B4F8C", "#0A7F62", "#C8440A", "#111111"
-W, H = ST.DOUBLE, 2.9
+W, H = ST.DOUBLE, 2.75
 
 
 def seed_trace(seed, v, t0):
@@ -73,7 +73,7 @@ def main():
 
     fig = plt.figure(figsize=(W, H))
     # ---- frames row, black captions underneath
-    n = 4; top = 0.02; cap = 0.34
+    n = 4; top = 0.02; cap = 0.18
     im0 = Image.open(files[(v, int(kfr[picks[0][0]]))]); W_, H_ = im0.size
     fw = 1.58; fh = fw * H_ / (0.84 * W_); gap = 0.16; x0 = (W - n * fw - (n - 1) * gap) / 2
     for j, (i, lab) in enumerate(picks):
@@ -85,8 +85,7 @@ def main():
         ax.imshow(np.asarray(im)); ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
         for sp in ax.spines.values():
             sp.set_edgecolor("#555555"); sp.set_linewidth(0.6)
-        fig.text((xl + fw / 2) / W, 1 - (top + fh + 0.05) / H, f"{kt[i]:.1f} min\n{lab}", fontsize=10, color=BLACK,
-                 ha="center", va="top", linespacing=1.15)
+        fig.text((xl + fw / 2) / W, 1 - (top + fh + 0.05) / H, lab, fontsize=10, color=BLACK, ha="center", va="top")
     # ---- score trace
     ax = fig.add_axes([0.065, 0.16, 0.925, 1 - (top + fh + cap + 0.04) / H - 0.16])
     tt = traces[0][0]
