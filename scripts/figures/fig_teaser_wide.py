@@ -33,7 +33,7 @@ import style as ST  # noqa: E402
 ST.setup()
 plt.rcParams.update({"font.size": 8.5, "axes.labelsize": 8.5, "xtick.labelsize": 8.5, "ytick.labelsize": 8.5})
 WHEAT, BLUE, BLUE_DARK, RED, BLACK = "#F5DEB3", "#9ED8F0", "#2F4FA2", "#E53B2C", "#111111"
-W, H = ST.DOUBLE, 2.35
+W, H = ST.DOUBLE, 2.42
 
 
 def seed_trace(seed, v, t0):
@@ -90,7 +90,7 @@ def main():
                 bbox=dict(fc="black", alpha=0.55, ec="none", pad=1.2))
         centers.append((xl + fw / 2, 1 - (top + fh) / H))
     # ---- score trace
-    ax = fig.add_axes([0.055, 0.13, 0.935, 1 - (top + fh + 0.12) / H - 0.13])
+    ax = fig.add_axes([0.055, 0.175, 0.935, 1 - (top + fh + 0.12) / H - 0.175])
     tt = traces[0][0]
     ax.fill_between(tt, rlo, rhi, color=BLUE, lw=0, zorder=1, alpha=0.8, label="unsmoothed 1 fps scores, 10 s window")
     ax.fill_between(tt, lo, hi, color=WHEAT, lw=0, zorder=0, alpha=0.9, label="range over three model seeds")
@@ -114,12 +114,12 @@ def main():
         fig.add_artist(matplotlib.patches.ConnectionPatch(
             xyA=(xc / W, yb - 0.008), coordsA="figure fraction", xyB=(kt[i], float(np.interp(kt[i], tt, p))), coordsB="data",
             axesB=ax, arrowstyle="-|>", color=BLUE_DARK, lw=0.9, mutation_scale=9, shrinkA=0, shrinkB=3, zorder=7))
-    ax.set_xlabel("time in dissection (min)", labelpad=1, loc="left"); ax.set_ylabel("P(CVS)")
+    ax.set_xlabel("time in dissection (min)", labelpad=2, loc="left"); ax.set_ylabel("P(CVS)")
     ax.grid(False)
     for sp in ("top", "right"):
         ax.spines[sp].set_visible(True); ax.spines[sp].set_color(ST.MUTED)
     hh, ll = ax.get_legend_handles_labels()
-    fig.legend(hh, ll, loc="lower right", bbox_to_anchor=(0.992, 0.005), ncol=3, fontsize=6.8, frameon=False,
+    fig.legend(hh, ll, loc="lower right", bbox_to_anchor=(0.992, 0.0), ncol=3, fontsize=6.8, frameon=False,
                handlelength=1.4, columnspacing=1.0, handletextpad=0.5)
     ST.save(fig, OUT / "fig_teaser_wide")
     with plt.rc_context({"svg.fonttype": "none"}):
