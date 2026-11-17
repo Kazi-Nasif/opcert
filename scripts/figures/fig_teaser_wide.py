@@ -4,9 +4,7 @@ confirmation of the frame-level rule, and the time it keeps reassuring the surge
 actually rate CVS achieved.
 
 Operation, thresholds and smoothing come from fig_timeline.select_operation() (video 194, alpha = 0.05,
-10 s causal smoothing, DINOv2-L seed 0).  Bands are measured, not modelled:
-  pale teal  min-max of the smoothed score across the three model seeds (each with its own temperature)
-  pale blue  min-max of the unsmoothed 1 fps scores inside the 10 s causal window of seed 0
+10 s causal smoothing, DINOv2-L seed 0).  The seed-0 trace is checked against the three-seed computation (no bands are drawn).
 Four frames: first false confirmation, highest-scoring false confirmation, first surgeon-rated CVS
 timestamp, and the last assessed timestamp (CVS achieved).
 
@@ -31,10 +29,11 @@ from fig_timeline import ALPHA, SMOOTH, select_operation  # noqa: E402
 import style as ST  # noqa: E402
 
 ST.setup()
-plt.rcParams.update({"font.size": 8.5, "axes.labelsize": 8.5, "xtick.labelsize": 8.5, "ytick.labelsize": 8.5})
+plt.rcParams.update({"font.size": 10, "axes.labelsize": 10, "xtick.labelsize": 10, "ytick.labelsize": 10,
+                     "axes.labelcolor": "#111111", "xtick.color": "#111111", "ytick.color": "#111111"})
 # palette of Figs. 3 and 4: deep blue, deep teal, vermillion; bands are pale tints of the blue and the teal
 WHEAT, BLUE, BLUE_DARK, TEAL, RED, BLACK = "#CFEAE4", "#D3E1EF", "#0B4F8C", "#0A7F62", "#C8440A", "#111111"
-W, H = ST.DOUBLE, 2.3
+W, H = ST.DOUBLE, 2.9
 
 
 def seed_trace(seed, v, t0):
@@ -74,9 +73,9 @@ def main():
 
     fig = plt.figure(figsize=(W, H))
     # ---- frames row, black captions underneath
-    n = 4; fh = 0.84; top = 0.02; cap = 0.16
+    n = 4; top = 0.02; cap = 0.34
     im0 = Image.open(files[(v, int(kfr[picks[0][0]]))]); W_, H_ = im0.size
-    fw = fh * 0.84 * W_ / H_; gap = (W - 0.6 - n * fw) / (n - 1); x0 = 0.3
+    fw = 1.58; fh = fw * H_ / (0.84 * W_); gap = 0.16; x0 = (W - n * fw - (n - 1) * gap) / 2
     for j, (i, lab) in enumerate(picks):
         im = Image.open(files[(v, int(kfr[i]))]).convert("RGB")
         im = im.crop((int(0.08 * W_), 0, int(0.92 * W_), H_)); im.thumbnail((900, 900))
@@ -86,13 +85,11 @@ def main():
         ax.imshow(np.asarray(im)); ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
         for sp in ax.spines.values():
             sp.set_edgecolor("#555555"); sp.set_linewidth(0.6)
-        fig.text((xl + fw / 2) / W, 1 - (top + fh + 0.09) / H, f"{kt[i]:.1f} min · {lab}", fontsize=7.5, color=BLACK,
-                 ha="center", va="center")
+        fig.text((xl + fw / 2) / W, 1 - (top + fh + 0.05) / H, f"{kt[i]:.1f} min\n{lab}", fontsize=10, color=BLACK,
+                 ha="center", va="top", linespacing=1.15)
     # ---- score trace
-    ax = fig.add_axes([0.055, 0.15, 0.935, 1 - (top + fh + cap + 0.04) / H - 0.15])
+    ax = fig.add_axes([0.065, 0.16, 0.925, 1 - (top + fh + cap + 0.04) / H - 0.16])
     tt = traces[0][0]
-    ax.fill_between(tt, rlo, rhi, color=BLUE, lw=0, zorder=1)
-    ax.fill_between(tt, lo, hi, color=WHEAT, lw=0, zorder=2)
     ax.plot(tt, p, c=BLACK, lw=1.7, zorder=4)
     ax.set_xlim(0, kt.max() + 0.25); ax.set_ylim(0, 1.0); ax.set_yticks([0, .2, .4, .6, .8, 1.0])
     # frame-level threshold: blue dashed up to the first false confirmation, then a solid red arrow to the CVS line
@@ -105,11 +102,11 @@ def main():
     ax.axvline(t_cvs, c=RED, ls=(0, (4, 2)), lw=1.3, zorder=3)
     ax.axvline(kt.max(), c="#555555", ls=":", lw=0.9)
     # labels, all black
-    ax.text(0.03, lam_frame + 0.03, "frame-level threshold (CRC)", fontsize=8, color=BLACK, va="bottom")
-    ax.text(0.03, lam_op + 0.03, "per-operation threshold (ours)", fontsize=8, color=BLACK, va="bottom")
-    ax.text(t_false + 0.08, 0.60, "false confirmation", fontsize=10.5, color=BLACK, va="bottom", ha="left")
-    ax.text(t_cvs + 0.05, 0.80, "CVS achieved", fontsize=10.5, color=BLACK, va="center", ha="left")
-    ax.text(kt.max() - 0.03, 0.95, "first clip", fontsize=7.5, color=BLACK, ha="right", va="top")
+    ax.text(0.03, lam_frame + 0.03, "frame-level threshold", fontsize=10, color=BLACK, va="bottom")
+    ax.text(0.03, lam_op + 0.03, "per-operation threshold", fontsize=10, color=BLACK, va="bottom")
+    ax.text(t_false + 0.1, lam_op + 0.04, "false confirmation", fontsize=10, color=BLACK, va="bottom", ha="left")
+    ax.text(t_cvs + 0.05, 0.80, "CVS achieved", fontsize=10, color=BLACK, va="center", ha="left")
+    ax.text(kt.max() - 0.04, 0.95, "first clip", fontsize=10, fontweight="bold", color=BLACK, ha="right", va="top")
     ax.set_xlabel("time in dissection (min)", labelpad=2); ax.set_ylabel("P(CVS)")
     ax.grid(False)
     for sp in ("top", "right"):
