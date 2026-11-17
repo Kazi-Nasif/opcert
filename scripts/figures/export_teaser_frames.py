@@ -4,11 +4,14 @@ therefore differ from the frames picked automatically by fig_teaser.py, the oper
 decisions are the same.  Crop (8 % at each side) as in the teaser.
 
   teaser_frames/{1_first_false,2_highest_false,3_cvs_achieved,4_last_assessed}.png   softened for display
+  teaser_frames/{...}_masked.png                                                       softened + pixelated mask over the window
   teaser_frames/{...}_raw.png                                                          the original crop
   teaser_frames/SOURCE.txt                                                             index, time, score, labels
 
 The displayed frames are softened uniformly (SOFT below: Gaussian blur, reduced colour saturation and
-contrast, slightly brighter); the caption should say so.  The model only ever saw the raw frames.
+contrast, slightly brighter); the masked variant additionally pixelates a feathered ellipse (MASKS, in
+pixels of the 717 x 480 crop) over the dissection window.  The caption should say so.  The model only
+ever saw the raw frames.
 
     python scripts/figures/export_teaser_frames.py
 """
@@ -16,7 +19,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "paper" / "figures" / "teaser_frames"; OUT.mkdir(exist_ok=True)
@@ -24,6 +27,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fig_timeline import ALPHA, SMOOTH, select_operation  # noqa: E402
 
 SOFT = dict(blur=1.5, saturation=0.65, contrast=0.90, brightness=1.05)   # display softening (717 px wide crop)
+PIX, FEATHER = 18, 14                                                       # pixel block size, mask edge feather (px)
+MASKS = {"1_first_false": (295, 245, 85, 65), "2_highest_false": (295, 265, 95, 82),    # (cx, cy, rx, ry)
+         "3_cvs_achieved": (310, 185, 80, 58), "4_last_assessed": (350, 195, 70, 58)}
 # keyframe index -> (file stem, label); all must satisfy the stated decision (asserted below)
 PICKS = [(8, "1_first_false", "first false confirmation"), (12, "2_highest_false", "highest false score"),
          (33, "3_cvs_achieved", "CVS achieved (surgeons)"), (35, "4_last_assessed", "last assessed timestamp")]
@@ -36,6 +42,15 @@ def soften(im):
     return ImageEnhance.Brightness(im).enhance(SOFT["brightness"])
 
 
+def mask_window(im, cx, cy, rx, ry):
+    """Pixelate a feathered ellipse of the (softened) frame around the dissection window."""
+    small = im.resize((max(1, im.width // PIX), max(1, im.height // PIX)), Image.BILINEAR)
+    pix = ImageEnhance.Color(small.resize(im.size, Image.NEAREST)).enhance(0.6)
+    m = Image.new("L", im.size, 0)
+    ImageDraw.Draw(m).ellipse((cx - rx, cy - ry, cx + rx, cy + ry), fill=255)
+    return Image.composite(pix, im, m.filter(ImageFilter.GaussianBlur(FEATHER)))
+
+
 def main():
     S = select_operation()
     kt, ky, kp, lam_frame, lam_op, files, kfr, v = (S[k] for k in ("kt", "ky", "kp", "lam_frame", "lam_op", "files", "kfr", "v"))
@@ -46,13 +61,15 @@ def main():
     for i, stem, lab in PICKS:
         im = Image.open(files[(v, int(kfr[i]))]).convert("RGB"); W_, H_ = im.size
         im = im.crop((int(0.08 * W_), 0, int(0.92 * W_), H_))
-        im.save(OUT / f"{stem}_raw.png"); soften(im).save(OUT / f"{stem}.png")
+        im.save(OUT / f"{stem}_raw.png"); sf = soften(im); sf.save(OUT / f"{stem}.png")
+        mask_window(sf, *MASKS[stem]).save(OUT / f"{stem}_masked.png")
         lines.append(f"{stem} ({lab}): keyframe index {i} (video {v}, frame {int(kfr[i])}), t = {kt[i]:.2f} min, "
                      f"p = {kp[i]:.3f}, CVS (surgeons) = {int(ky[i])}, frame-level false confirmation = {int(fx[i])}")
     (OUT / "SOURCE.txt").write_text(
         f"Endoscapes test video {v}; alpha = {ALPHA}, {SMOOTH} s smoothing; thresholds frame-level {lam_frame:.3f}, "
         f"per operation {lam_op:.3f}.\nFrames cropped 8 % at each side as in fig_teaser.py; *_raw.png is the original crop, "
-        f"the displayed frame is softened with {SOFT}.\n" + "\n".join(lines) + "\n")
+        f"the displayed frame is softened with {SOFT}; *_masked.png adds a pixelated (block {PIX} px, feather {FEATHER} px) "
+        f"ellipse over the window: {MASKS}.\n" + "\n".join(lines) + "\n")
     print("\n".join(lines))
 
 
