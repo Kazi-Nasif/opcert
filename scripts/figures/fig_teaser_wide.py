@@ -91,10 +91,10 @@ def main():
     tt = traces[0][0]
     ax.plot(tt, p, c=BLACK, lw=1.7, zorder=4)
     ax.set_xlim(0, kt.max() + 0.25); ax.set_ylim(0, 1.0); ax.set_yticks([0, .2, .4, .6, .8, 1.0])
+    ax.set_xticks([0, 1, 2, 3, 4]); ax.set_xticks([0.5, 1.5, 2.5, 3.5, 4.5], minor=True)
+    ax.tick_params(axis="x", which="minor", length=plt.rcParams["xtick.major.size"], width=plt.rcParams["xtick.major.width"])
     # frame-level threshold: blue dashed up to the first false confirmation, then a solid red arrow to the CVS line
     ax.axhline(lam_frame, c=BLUE_DARK, ls=(0, (5, 3)), lw=1.3, zorder=3)
-    ax.plot([t_false, t_false], [0, lam_frame], c=BLUE_DARK, ls=(0, (5, 3)), lw=1.3, zorder=3)
-    ax.scatter([t_false], [lam_frame], s=70, c=RED, zorder=6)
     ax.axhline(lam_op, c=TEAL, ls=(0, (2, 2)), lw=1.4, zorder=3)
     ax.axvline(kt.max(), c="#555555", ls=":", lw=0.9)
     # labels, all black
