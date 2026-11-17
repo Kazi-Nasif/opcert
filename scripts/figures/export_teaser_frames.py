@@ -5,6 +5,7 @@ decisions are the same.  Crop (8 % at each side) as in the teaser.
 
   teaser_frames/{1_first_false,2_highest_false,3_cvs_achieved,4_last_assessed}.png   softened for display
   teaser_frames/{...}_masked.png                                                       softened + pixelated mask over the window
+  teaser_frames/{...}_film.png                                                         masked frame inside a film-strip border
   teaser_frames/{...}_raw.png                                                          the original crop
   teaser_frames/SOURCE.txt                                                             index, time, score, labels
 
@@ -28,6 +29,7 @@ from fig_timeline import ALPHA, SMOOTH, select_operation  # noqa: E402
 
 SOFT = dict(blur=1.5, saturation=0.65, contrast=0.90, brightness=1.05)   # display softening (717 px wide crop)
 PIX, FEATHER = 18, 14                                                       # pixel block size, mask edge feather (px)
+FILM = dict(band=0.16, side=0.05, hole_w=0.055, hole_h=0.45, n_holes=9)     # film-strip border, fractions of the frame
 MASKS = {"1_first_false": (295, 245, 85, 65), "2_highest_false": (295, 265, 95, 82),    # (cx, cy, rx, ry)
          "3_cvs_achieved": (310, 185, 80, 58), "4_last_assessed": (350, 195, 70, 58)}
 # keyframe index -> (file stem, label); all must satisfy the stated decision (asserted below)
@@ -40,6 +42,19 @@ def soften(im):
     im = ImageEnhance.Color(im).enhance(SOFT["saturation"])
     im = ImageEnhance.Contrast(im).enhance(SOFT["contrast"])
     return ImageEnhance.Brightness(im).enhance(SOFT["brightness"])
+
+
+def film_border(im):
+    """Black film-strip frame with white sprocket holes above and below (makes the view less prominent)."""
+    band, side = int(FILM["band"] * im.height), int(FILM["side"] * im.width)
+    out = Image.new("RGB", (im.width + 2 * side, im.height + 2 * band), "black"); out.paste(im, (side, band))
+    d = ImageDraw.Draw(out); hw, hh = int(FILM["hole_w"] * im.width), int(FILM["hole_h"] * band)
+    pitch = out.width / FILM["n_holes"]
+    for k in range(FILM["n_holes"]):
+        cx = int((k + 0.5) * pitch)
+        for cy in ((band - hh) // 2 + hh // 2, out.height - band + (band - hh) // 2 + hh // 2):
+            d.rounded_rectangle((cx - hw // 2, cy - hh // 2, cx + hw // 2, cy + hh // 2), radius=max(2, hw // 6), fill="white")
+    return out
 
 
 def mask_window(im, cx, cy, rx, ry):
@@ -62,14 +77,15 @@ def main():
         im = Image.open(files[(v, int(kfr[i]))]).convert("RGB"); W_, H_ = im.size
         im = im.crop((int(0.08 * W_), 0, int(0.92 * W_), H_))
         im.save(OUT / f"{stem}_raw.png"); sf = soften(im); sf.save(OUT / f"{stem}.png")
-        mask_window(sf, *MASKS[stem]).save(OUT / f"{stem}_masked.png")
+        mk = mask_window(sf, *MASKS[stem]); mk.save(OUT / f"{stem}_masked.png")
+        film_border(mk).save(OUT / f"{stem}_film.png")
         lines.append(f"{stem} ({lab}): keyframe index {i} (video {v}, frame {int(kfr[i])}), t = {kt[i]:.2f} min, "
                      f"p = {kp[i]:.3f}, CVS (surgeons) = {int(ky[i])}, frame-level false confirmation = {int(fx[i])}")
     (OUT / "SOURCE.txt").write_text(
         f"Endoscapes test video {v}; alpha = {ALPHA}, {SMOOTH} s smoothing; thresholds frame-level {lam_frame:.3f}, "
         f"per operation {lam_op:.3f}.\nFrames cropped 8 % at each side as in fig_teaser.py; *_raw.png is the original crop, "
         f"the displayed frame is softened with {SOFT}; *_masked.png adds a pixelated (block {PIX} px, feather {FEATHER} px) "
-        f"ellipse over the window: {MASKS}.\n" + "\n".join(lines) + "\n")
+        f"ellipse over the window: {MASKS}; *_film.png adds a film-strip border {FILM}.\n" + "\n".join(lines) + "\n")
     print("\n".join(lines))
 
 
