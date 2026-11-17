@@ -92,7 +92,7 @@ def main():
     # ---- score trace
     ax = fig.add_axes([0.055, 0.13, 0.935, 1 - (top + fh + 0.12) / H - 0.13])
     tt = traces[0][0]
-    ax.fill_between(tt, rlo, rhi, color=BLUE, lw=0, zorder=1, alpha=0.8, label="unsmoothed 1 fps scores in the 10 s window")
+    ax.fill_between(tt, rlo, rhi, color=BLUE, lw=0, zorder=1, alpha=0.8, label="unsmoothed 1 fps scores, 10 s window")
     ax.fill_between(tt, lo, hi, color=WHEAT, lw=0, zorder=0, alpha=0.9, label="range over three model seeds")
     ax.plot(tt, p, c=BLACK, lw=1.6, zorder=4, label="CVS score, 10 s smoothing")
     ax.axhline(lam_frame, c=BLUE_DARK, ls=(0, (5, 3)), lw=1.1, zorder=3)
@@ -108,17 +108,19 @@ def main():
             color=RED, ha="center", va="bottom", linespacing=1.1)
     ax.text(t_cvs + 0.04, 0.72, "CVS achieved\n(surgeons)", fontsize=7.5, color=RED, va="top", linespacing=1.1)
     ax.axvline(kt.max(), c="#777777", ls=":", lw=0.9); ax.text(kt.max() - 0.03, 0.05, "first clip", fontsize=7, color="#777777", ha="right")
-    # arrows from the frames to their timestamps on the trace
-    for (xc, yb), (i, _) in zip(centers, picks):
-        fig.add_artist(matplotlib.patches.FancyArrowPatch(
-            (xc / W, yb - 0.01), ax.transData.transform((kt[i], np.interp(kt[i], tt, p))) / (fig.dpi * np.array([W, H])),
-            transform=fig.transFigure, arrowstyle="-|>", color=BLUE_DARK, lw=0.9, mutation_scale=9, shrinkA=0, shrinkB=2, zorder=7))
     ax.set_xlim(0, kt.max() + 0.25); ax.set_ylim(0, 1.0); ax.set_yticks([0, .2, .4, .6, .8, 1.0])
-    ax.set_xlabel("time in dissection (min)", labelpad=1); ax.set_ylabel("P(CVS)")
+    # arrows from the frames to their timestamps on the trace, resolved in data coordinates at draw time
+    for (xc, yb), (i, _) in zip(centers, picks):
+        fig.add_artist(matplotlib.patches.ConnectionPatch(
+            xyA=(xc / W, yb - 0.008), coordsA="figure fraction", xyB=(kt[i], float(np.interp(kt[i], tt, p))), coordsB="data",
+            axesB=ax, arrowstyle="-|>", color=BLUE_DARK, lw=0.9, mutation_scale=9, shrinkA=0, shrinkB=3, zorder=7))
+    ax.set_xlabel("time in dissection (min)", labelpad=1, loc="left"); ax.set_ylabel("P(CVS)")
     ax.grid(False)
     for sp in ("top", "right"):
         ax.spines[sp].set_visible(True); ax.spines[sp].set_color(ST.MUTED)
-    ax.legend(loc="upper left", fontsize=6.8, frameon=False, handlelength=1.6, borderaxespad=0.3, labelspacing=0.25)
+    hh, ll = ax.get_legend_handles_labels()
+    fig.legend(hh, ll, loc="lower right", bbox_to_anchor=(0.992, 0.005), ncol=3, fontsize=6.8, frameon=False,
+               handlelength=1.4, columnspacing=1.0, handletextpad=0.5)
     ST.save(fig, OUT / "fig_teaser_wide")
     with plt.rc_context({"svg.fonttype": "none"}):
         fig.savefig(OUT / "fig_teaser_wide.svg")
