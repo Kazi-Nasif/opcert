@@ -92,13 +92,10 @@ def main():
     ax.plot(tt, p, c=BLACK, lw=1.7, zorder=4)
     ax.set_xlim(0, kt.max() + 0.25); ax.set_ylim(0, 1.0); ax.set_yticks([0, .2, .4, .6, .8, 1.0])
     # frame-level threshold: blue dashed up to the first false confirmation, then a solid red arrow to the CVS line
-    ax.plot([0, t_false], [lam_frame, lam_frame], c=BLUE_DARK, ls=(0, (5, 3)), lw=1.3, zorder=3)
-    ax.annotate("", xy=(t_cvs, lam_frame), xytext=(t_false, lam_frame),
-                arrowprops=dict(arrowstyle="-|>", color=RED, lw=2.0, mutation_scale=14, shrinkA=0, shrinkB=0), zorder=5)
+    ax.axhline(lam_frame, c=BLUE_DARK, ls=(0, (5, 3)), lw=1.3, zorder=3)
     ax.plot([t_false, t_false], [0, lam_frame], c=BLUE_DARK, ls=(0, (5, 3)), lw=1.3, zorder=3)
     ax.scatter([t_false], [lam_frame], s=70, c=RED, zorder=6)
     ax.axhline(lam_op, c=TEAL, ls=(0, (2, 2)), lw=1.4, zorder=3)
-    ax.axvline(t_cvs, c=RED, ls=(0, (4, 2)), lw=1.3, zorder=3)
     ax.axvline(kt.max(), c="#555555", ls=":", lw=0.9)
     # labels, all black
     ax.text(0.03, lam_frame + 0.03, "frame-level threshold", fontsize=10, color=BLACK, va="bottom")
