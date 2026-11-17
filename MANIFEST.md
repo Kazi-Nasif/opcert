@@ -8,7 +8,7 @@ DINOv2-L CVS seeds 0/1/2, and the majority reference unless stated.
 |---|---|---|
 | Main Tab. 1 (perception) | `scripts/evaluate.py`, `scripts/temporal/train_temporal.py` | `experiments/finetune/*/metrics.json`, `experiments/temporal/*` |
 | Main Fig. 1 (teaser), Supp. Fig. 1 (timeline) | `scripts/figures/fig_teaser.py`, `scripts/figures/fig_timeline.py` | `experiments/finetune/dinov2l_b8_s0/logits_{val,test}.npz`, `experiments/compare_all/compare_all.csv` |
-| Main Fig. 2 (architecture overview) | `scripts/figures/fig_overview_v2.py` | `experiments/finetune/dinov2l_b8_s0/logits_val.npz` (calibration maxima), `paper/figures/arch_assets/` (frames) |
+| Main Fig. 2 (architecture overview) | `scripts/figures/fig_overview_v2.py`, `scripts/figures/fig_overview_v3.py` (icon style) | `experiments/finetune/dinov2l_b8_s0/logits_val.npz` (calibration maxima), `paper/figures/arch_assets/` (frames) |
 | Main Fig. 4 (SAGES + non-random splits), Supp. country figure | `scripts/figures/fig_sages_main.py`, `scripts/figures/fig_sages_country.py` | `experiments/external_sages/results_full.csv`, `experiments/review3/fixed_splits.csv` |
 | Main qualitative figure (3 cases) | `scripts/generate_qualitative_main.py` | `experiments/detector/frcnn_s0/regions_test.json`, `experiments/finetune/dinov2l_b8_s0/logits_*.npz`; manifest `paper/figures/qualitative_main_manifest.csv` |
 | Main Fig. 3, Tab. 3 | `scripts/compare_all.py` (+ `scripts/review2/rebuttal.py` for Bonferroni/PAC rows) | `experiments/compare_all/compare_all.csv`, `experiments/review/rebuttal_stream.csv` |
